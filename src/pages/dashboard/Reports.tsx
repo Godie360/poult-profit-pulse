@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, Calendar } from "lucide-react";
+import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 const Reports = () => {
   // This would be real data from the API in a real application
@@ -18,6 +20,30 @@ const Reports = () => {
     laborExpense: 2650,
   };
 
+  const [dateRange, setDateRange] = useState("last30days");
+
+  const handleExportReports = () => {
+    toast({
+      title: "Export initiated",
+      description: "Your report is being prepared for download.",
+    });
+    // In a real application with DB connection:
+    // 1. Make API call to generate report
+    // 2. Download the generated file
+    console.log("Exporting reports with data:", mockData);
+  };
+
+  const handleChangePeriod = () => {
+    toast({
+      title: "Period selection",
+      description: "Date range selection will be implemented with database connection",
+    });
+    // In a real application with DB connection:
+    // 1. Open date range picker
+    // 2. Update data based on selected range
+    console.log("Changing report period");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -26,11 +52,18 @@ const Reports = () => {
           <p className="text-gray-600">Financial and farm performance insights</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="border-green-600 text-green-700 hover:bg-green-50">
+          <Button 
+            variant="outline" 
+            className="border-green-600 text-green-700 hover:bg-green-50"
+            onClick={handleChangePeriod}
+          >
             <Calendar className="mr-2 h-4 w-4" />
             Change Period
           </Button>
-          <Button className="bg-green-600 hover:bg-green-700">
+          <Button 
+            className="bg-green-600 hover:bg-green-700"
+            onClick={handleExportReports}
+          >
             <Download className="mr-2 h-4 w-4" />
             Export Reports
           </Button>

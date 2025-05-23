@@ -15,7 +15,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "@/hooks/use-toast";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ArrowDown } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -24,6 +24,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const dailyLogSchema = z.object({
   date: z.date({
@@ -39,6 +46,15 @@ const dailyLogSchema = z.object({
 type DailyLogForm = z.infer<typeof dailyLogSchema>;
 
 const PoultryWorker = () => {
+  const [logs, setLogs] = useState<Array<{
+    date: string;
+    penId: string;
+    eggsCollected: number;
+    poultryDeaths: number;
+    poultrySold: number;
+    salesAmount: number;
+  }>>([]);
+
   const form = useForm<DailyLogForm>({
     resolver: zodResolver(dailyLogSchema),
     defaultValues: {
@@ -52,8 +68,20 @@ const PoultryWorker = () => {
   });
 
   const onSubmit = (data: DailyLogForm) => {
-    // In a real application, we would send this data to the server
-    console.log("Daily log data:", data);
+    // In a real application with DB connection:
+    // 1. Make API call to create a new daily log
+    // 2. Update logs list with response
+    
+    const newLog = {
+      date: format(data.date, "yyyy-MM-dd"),
+      penId: data.penId,
+      eggsCollected: data.eggsCollected,
+      poultryDeaths: data.poultryDeaths,
+      poultrySold: data.poultrySold,
+      salesAmount: data.salesAmount
+    };
+    
+    setLogs([newLog, ...logs]);
     
     toast({
       title: "Daily log submitted",
@@ -61,7 +89,14 @@ const PoultryWorker = () => {
     });
     
     // Reset the form
-    form.reset();
+    form.reset({
+      date: new Date(),
+      penId: "",
+      eggsCollected: 0,
+      poultryDeaths: 0,
+      poultrySold: 0,
+      salesAmount: 0,
+    });
   };
 
   return (
@@ -126,9 +161,20 @@ const PoultryWorker = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Pen ID</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. Pen 1" {...field} />
-                      </FormControl>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a pen" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="1">Pen 1</SelectItem>
+                          <SelectItem value="2">Pen 2</SelectItem>
+                          <SelectItem value="3">Pen 3</SelectItem>
+                          <SelectItem value="4">Pen 4</SelectItem>
+                          <SelectItem value="5">Pen 5</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -200,6 +246,42 @@ const PoultryWorker = () => {
           </Form>
         </CardContent>
       </Card>
+
+      {logs.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Daily Logs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b text-left">
+                    <th className="pb-2 font-medium">Date</th>
+                    <th className="pb-2 font-medium">Pen</th>
+                    <th className="pb-2 font-medium">Eggs</th>
+                    <th className="pb-2 font-medium">Deaths</th>
+                    <th className="pb-2 font-medium">Sold</th>
+                    <th className="pb-2 font-medium">Sales</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map((log, i) => (
+                    <tr key={i} className="border-b hover:bg-gray-50">
+                      <td className="py-3">{log.date}</td>
+                      <td className="py-3">Pen {log.penId}</td>
+                      <td className="py-3">{log.eggsCollected}</td>
+                      <td className="py-3">{log.poultryDeaths}</td>
+                      <td className="py-3">{log.poultrySold}</td>
+                      <td className="py-3">${log.salesAmount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

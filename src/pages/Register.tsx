@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,6 +17,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { Logo } from "@/components/ui/logo";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const registerSchemaStep1 = z.object({
   fullName: z.string().min(3, "Full name must be at least 3 characters"),
@@ -25,6 +33,7 @@ const registerSchemaStep1 = z.object({
 
 const registerSchemaStep2 = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
+  role: z.string().min(1, "Role is required"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
@@ -40,6 +49,8 @@ const Register = () => {
   const [step1Data, setStep1Data] = useState<RegisterFormStep1 | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   const step1Form = useForm<RegisterFormStep1>({
     resolver: zodResolver(registerSchemaStep1),
@@ -54,6 +65,7 @@ const Register = () => {
     resolver: zodResolver(registerSchemaStep2),
     defaultValues: {
       username: "",
+      role: "",
       password: "",
       confirmPassword: "",
     },
@@ -62,10 +74,16 @@ const Register = () => {
   const onSubmitStep1 = (data: RegisterFormStep1) => {
     setStep1Data(data);
     setStep(2);
+    
+    // Pre-fill username with email prefix
+    const emailPrefix = data.email.split('@')[0];
+    step2Form.setValue("username", emailPrefix);
   };
 
   const onSubmitStep2 = (data: RegisterFormStep2) => {
     if (!step1Data) return;
+    
+    setIsSubmitting(true);
 
     // Combine data from both steps
     const fullData = {
@@ -73,17 +91,41 @@ const Register = () => {
       ...data
     };
 
-    // In a real application, we would send this data to the server
+    // In a real application with DB connection:
+    // 1. Make API call to register user
+    // 2. Store user data and token in local storage or context
     console.log("Registration data:", fullData);
     
-    // Show success message
-    toast({
-      title: "Registration successful!",
-      description: "You can now log in with your new account.",
-    });
-    
-    // Redirect to login (in a real application)
-    // navigate("/login");
+    // Simulate API call
+    setTimeout(() => {
+      // Store user info in localStorage (in a real app, this would include JWT token)
+      const userInfo = {
+        email: step1Data.email,
+        name: step1Data.fullName,
+        role: data.role === "farmer" ? "Farmer" : data.role === "worker" ? "Poultry Worker" : "Veterinarian",
+        username: data.username,
+        lastLogin: new Date().toISOString()
+      };
+      
+      localStorage.setItem('dgpoultry_user', JSON.stringify(userInfo));
+      
+      // Show success message
+      toast({
+        title: "Registration successful!",
+        description: "You can now use the system with your new account.",
+      });
+      
+      // Redirect based on role
+      if (data.role === "worker") {
+        navigate("/worker");
+      } else if (data.role === "vet") {
+        navigate("/vet");
+      } else {
+        navigate("/dashboard");
+      }
+      
+      setIsSubmitting(false);
+    }, 1500); // Simulate network request
   };
 
   return (
@@ -109,8 +151,8 @@ const Register = () => {
                 ></div>
               </div>
               <div className="flex justify-between mt-2 text-xs text-green-800">
-                <span className="font-medium">Personal Details</span>
-                <span className={step === 2 ? "font-medium" : "text-green-500"}>Account Setup</span>
+                <span className={step === 1 ? "font-medium" : ""}>Personal Details</span>
+                <span className={step === 2 ? "font-medium" : ""}>Account Setup</span>
               </div>
             </div>
 
@@ -176,6 +218,28 @@ const Register = () => {
                         <FormControl>
                           <Input placeholder="johnsmith" {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={step2Form.control}
+                    name="role"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>User Role</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select your role" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="farmer">Farmer (Owner)</SelectItem>
+                            <SelectItem value="worker">Poultry Worker</SelectItem>
+                            <SelectItem value="vet">Veterinarian</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -250,12 +314,17 @@ const Register = () => {
                       variant="outline" 
                       onClick={() => setStep(1)}
                       className="border-green-600 text-green-700 hover:bg-green-50"
+                      disabled={isSubmitting}
                     >
                       <ChevronLeft className="mr-2 h-4 w-4" />
                       Back
                     </Button>
-                    <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                      Register
+                    <Button 
+                      type="submit" 
+                      className="bg-green-600 hover:bg-green-700"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Registering..." : "Register"}
                     </Button>
                   </div>
                 </form>

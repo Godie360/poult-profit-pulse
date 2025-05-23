@@ -27,6 +27,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const form = useForm<LoginForm>({
@@ -38,27 +39,48 @@ const Login = () => {
   });
 
   const onSubmit = (data: LoginForm) => {
-    // In a real application, we would send this data to the server
+    setIsSubmitting(true);
+    
+    // In a real application with DB connection:
+    // 1. Make API call to authenticate user
+    // 2. Store user data and token in local storage or context
+    // 3. Redirect based on role
     console.log("Login data:", data);
     
-    // Simulate role-based redirection
-    const email = data.email.toLowerCase();
-    let redirectPath = "/dashboard";
-    
-    if (email.includes("worker")) {
-      redirectPath = "/worker";
-    } else if (email.includes("vet")) {
-      redirectPath = "/vet";
-    }
-    
-    // Show success message
-    toast({
-      title: "Login successful!",
-      description: "Welcome back to DG Poultry.",
-    });
-    
-    // Redirect to dashboard based on role
-    navigate(redirectPath);
+    // Simulate role-based redirection with loading state
+    setTimeout(() => {
+      const email = data.email.toLowerCase();
+      let redirectPath = "/dashboard";
+      let role = "Farmer";
+      
+      if (email.includes("worker")) {
+        redirectPath = "/worker";
+        role = "Poultry Worker";
+      } else if (email.includes("vet")) {
+        redirectPath = "/vet";
+        role = "Veterinarian";
+      }
+      
+      // Store user info in localStorage (in a real app, this would include JWT token)
+      const userInfo = {
+        email: data.email,
+        role: role,
+        name: email.split('@')[0],
+        lastLogin: new Date().toISOString()
+      };
+      
+      localStorage.setItem('dgpoultry_user', JSON.stringify(userInfo));
+      
+      // Show success message
+      toast({
+        title: "Login successful!",
+        description: `Welcome back to DG Poultry, ${role}.`,
+      });
+      
+      // Redirect to dashboard based on role
+      navigate(redirectPath);
+      setIsSubmitting(false);
+    }, 1000); // Simulate network request
   };
 
   return (
@@ -136,8 +158,9 @@ const Login = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-green-600 hover:bg-green-700"
+                  disabled={isSubmitting}
                 >
-                  Login
+                  {isSubmitting ? "Logging in..." : "Login"}
                 </Button>
               </form>
             </Form>
@@ -147,6 +170,46 @@ const Login = () => {
               <Link to="/register" className="text-green-600 font-medium hover:underline">
                 Register Now
               </Link>
+            </div>
+            
+            {/* Demo accounts for testing */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <p className="text-xs text-center text-gray-500 mb-2">Demo Accounts</p>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs py-1 h-auto"
+                  onClick={() => {
+                    form.setValue("email", "farmer@example.com");
+                    form.setValue("password", "password123");
+                  }}
+                >
+                  Farmer
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs py-1 h-auto"
+                  onClick={() => {
+                    form.setValue("email", "worker@example.com");
+                    form.setValue("password", "password123");
+                  }}
+                >
+                  Worker
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs py-1 h-auto"
+                  onClick={() => {
+                    form.setValue("email", "vet@example.com");
+                    form.setValue("password", "password123");
+                  }}
+                >
+                  Veterinarian
+                </Button>
+              </div>
             </div>
           </div>
           

@@ -1,9 +1,60 @@
 
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 
 const Home = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if user is logged in
+    const userInfo = localStorage.getItem('dgpoultry_user');
+    if (userInfo) {
+      const user = JSON.parse(userInfo);
+      setIsLoggedIn(true);
+      setUserRole(user.role);
+    }
+  }, []);
+
+  const handleGetStarted = () => {
+    if (isLoggedIn) {
+      // Redirect to appropriate dashboard based on role
+      if (userRole === "Poultry Worker") {
+        navigate("/worker");
+      } else if (userRole === "Veterinarian") {
+        navigate("/vet");
+      } else {
+        navigate("/dashboard");
+      }
+    } else {
+      navigate("/register");
+    }
+  };
+
+  const handleLogin = () => {
+    if (isLoggedIn) {
+      // Redirect to appropriate dashboard based on role
+      if (userRole === "Poultry Worker") {
+        navigate("/worker");
+      } else if (userRole === "Veterinarian") {
+        navigate("/vet");
+      } else {
+        navigate("/dashboard");
+      }
+    } else {
+      navigate("/login");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('dgpoultry_user');
+    setIsLoggedIn(false);
+    setUserRole("");
+  };
+
   return (
     <div className="min-h-screen bg-green-50">
       {/* Header */}
@@ -11,16 +62,38 @@ const Home = () => {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Logo size="lg" />
           <div className="flex gap-4">
-            <Link to="/login">
-              <Button variant="outline" className="border-green-600 text-green-700 hover:bg-green-50">
-                Login
-              </Button>
-            </Link>
-            <Link to="/register">
-              <Button className="bg-green-600 hover:bg-green-700">
-                Register
-              </Button>
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Button 
+                  variant="outline" 
+                  className="border-green-600 text-green-700 hover:bg-green-50"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </Button>
+                <Button 
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => handleGetStarted()}
+                >
+                  Dashboard
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  variant="outline" 
+                  className="border-green-600 text-green-700 hover:bg-green-50"
+                  onClick={handleLogin}
+                >
+                  Login
+                </Button>
+                <Link to="/register">
+                  <Button className="bg-green-600 hover:bg-green-700">
+                    Register
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -36,16 +109,21 @@ const Home = () => {
               Track your costs, monitor production, and boost profits with our comprehensive poultry management system.
             </p>
             <div className="flex gap-4">
-              <Link to="/register">
-                <Button className="bg-green-600 hover:bg-green-700 px-6 py-2 text-lg">
-                  Get Started
-                </Button>
-              </Link>
-              <Link to="/login">
-                <Button variant="outline" className="border-green-600 text-green-700 hover:bg-green-50 px-6 py-2 text-lg">
+              <Button 
+                className="bg-green-600 hover:bg-green-700 px-6 py-2 text-lg"
+                onClick={handleGetStarted}
+              >
+                {isLoggedIn ? "Go to Dashboard" : "Get Started"}
+              </Button>
+              {!isLoggedIn && (
+                <Button 
+                  variant="outline" 
+                  className="border-green-600 text-green-700 hover:bg-green-50 px-6 py-2 text-lg"
+                  onClick={handleLogin}
+                >
                   Login
                 </Button>
-              </Link>
+              )}
             </div>
           </div>
           <div className="flex justify-center">

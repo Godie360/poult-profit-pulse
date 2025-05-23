@@ -41,6 +41,7 @@ const penSchema = z.object({
 
 type PenForm = z.infer<typeof penSchema>;
 
+// Updated the mock pens to ensure mortality is consistently a number
 const mockPens = [
   { id: 1, name: "Pen #1", birdCount: 250, type: "Layers", age: 11, dailyEggAvg: 190, mortality: 0.7, status: "active" },
   { id: 2, name: "Pen #2", birdCount: 300, type: "Layers", age: 12, dailyEggAvg: 230, mortality: 1.1, status: "active" },
@@ -81,7 +82,7 @@ const Pens = () => {
       type: data.penType,
       age: data.age,
       dailyEggAvg: Math.floor(data.birdCount * 0.8),
-      mortality: (Math.random() * 0.5 + 0.5).toFixed(1),
+      mortality: parseFloat((Math.random() * 0.5 + 0.5).toFixed(1)), // Convert to number
       status: "active"
     };
 

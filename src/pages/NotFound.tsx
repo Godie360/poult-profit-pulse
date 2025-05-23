@@ -1,7 +1,8 @@
 
 import { Link } from "react-router-dom";
-import { Egg, Home } from "lucide-react";
+import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/ui/logo";
 
 const NotFound = () => {
   return (
@@ -9,7 +10,7 @@ const NotFound = () => {
       <div className="text-center max-w-md">
         <div className="flex justify-center mb-6">
           <div className="bg-white rounded-full p-6 shadow-md">
-            <Egg className="h-16 w-16 text-green-600" />
+            <Logo size="lg" withText={false} />
           </div>
         </div>
         

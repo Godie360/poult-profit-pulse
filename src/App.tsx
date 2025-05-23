@@ -11,6 +11,11 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import NotFound from "./pages/NotFound";
+import Pens from "./pages/dashboard/Pens";
+import Records from "./pages/dashboard/Records";
+import Reports from "./pages/dashboard/Reports";
+import PoultryWorker from "./pages/PoultryWorker";
+import VetDashboard from "./pages/VetDashboard";
 
 const queryClient = new QueryClient();
 
@@ -29,10 +34,18 @@ const App = () => (
           {/* Dashboard Routes */}
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Dashboard />} />
-            {/* Additional dashboard routes would go here */}
-            {/* <Route path="pens" element={<Pens />} /> */}
-            {/* <Route path="records" element={<Records />} /> */}
-            {/* <Route path="reports" element={<Reports />} /> */}
+            <Route path="pens" element={<Pens />} />
+            <Route path="records" element={<Records />} />
+            <Route path="reports" element={<Reports />} />
+          </Route>
+          
+          {/* Role-specific Routes */}
+          <Route path="/worker" element={<DashboardLayout />}>
+            <Route index element={<PoultryWorker />} />
+          </Route>
+          
+          <Route path="/vet" element={<DashboardLayout />}>
+            <Route index element={<VetDashboard />} />
           </Route>
 
           {/* 404 Not Found */}

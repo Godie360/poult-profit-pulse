@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Egg, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
+import { Logo } from "@/components/ui/logo";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -54,10 +54,7 @@ const Login = () => {
       {/* Header */}
       <div className="bg-white shadow-sm py-3 px-4 md:px-8">
         <div className="max-w-7xl mx-auto">
-          <Link to="/" className="flex items-center gap-2">
-            <Egg className="h-6 w-6 text-green-600" />
-            <span className="font-bold text-green-800">DG Poultry</span>
-          </Link>
+          <Logo />
         </div>
       </div>
 
@@ -68,7 +65,7 @@ const Login = () => {
             
             <div className="mb-6 flex justify-center">
               <div className="bg-green-50 p-3 rounded-full">
-                <Egg className="h-10 w-10 text-green-600" />
+                <Logo size="lg" withText={false} />
               </div>
             </div>
 

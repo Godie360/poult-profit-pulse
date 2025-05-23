@@ -4,11 +4,11 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { 
   Bell, 
   ChevronDown, 
-  Egg, 
   Home, 
   LogOut, 
   Settings, 
-  User 
+  User,
+  Egg,
 } from "lucide-react";
 import {
   SidebarProvider,
@@ -32,8 +32,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@radix-ui/react-dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Logo } from "@/components/ui/logo";
 
 interface NavLinkProps {
   to: string;
@@ -77,10 +78,7 @@ const DashboardLayout = () => {
       <div className="flex min-h-screen w-full">
         <Sidebar className="border-r border-gray-200">
           <SidebarHeader className="p-4 border-b border-gray-200">
-            <div className="flex items-center gap-2">
-              <Egg className="h-6 w-6 text-green-600" />
-              <span className="font-bold text-xl text-green-800">DG Poultry</span>
-            </div>
+            <Logo />
           </SidebarHeader>
 
           <SidebarContent>

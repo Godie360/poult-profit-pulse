@@ -1,5 +1,13 @@
 
-import { LineChart, BarChart, TrendingUp, TrendingDown, PiggyBank, Calendar } from "lucide-react";
+import { 
+  LineChart, 
+  BarChart, 
+  TrendingUp, 
+  TrendingDown, 
+  PiggyBank, 
+  Calendar, 
+  Egg as EggIcon 
+} from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -135,7 +143,7 @@ const Dashboard = () => {
               {/* Recent activities would be mapped from data in a real app */}
               <div className="flex items-start gap-4 p-3 rounded-md hover:bg-gray-50">
                 <div className="bg-green-100 p-2 rounded-full">
-                  <Egg className="h-5 w-5 text-green-600" />
+                  <EggIcon className="h-5 w-5 text-green-600" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
@@ -183,7 +191,7 @@ const Dashboard = () => {
           <CardContent>
             <div className="space-y-3">
               <Button className="w-full bg-green-600 hover:bg-green-700 justify-start">
-                <Egg className="mr-2 h-5 w-5" />
+                <EggIcon className="mr-2 h-5 w-5" />
                 Record Egg Collection
               </Button>
               <Button className="w-full bg-green-600 hover:bg-green-700 justify-start">

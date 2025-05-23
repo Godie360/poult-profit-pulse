@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -26,6 +27,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -39,14 +41,24 @@ const Login = () => {
     // In a real application, we would send this data to the server
     console.log("Login data:", data);
     
+    // Simulate role-based redirection
+    const email = data.email.toLowerCase();
+    let redirectPath = "/dashboard";
+    
+    if (email.includes("worker")) {
+      redirectPath = "/worker";
+    } else if (email.includes("vet")) {
+      redirectPath = "/vet";
+    }
+    
     // Show success message
     toast({
       title: "Login successful!",
       description: "Welcome back to DG Poultry.",
     });
     
-    // Redirect to dashboard (in a real application)
-    // navigate("/dashboard");
+    // Redirect to dashboard based on role
+    navigate(redirectPath);
   };
 
   return (
@@ -136,6 +148,12 @@ const Login = () => {
                 Register Now
               </Link>
             </div>
+          </div>
+          
+          <div className="mt-4 text-center text-sm text-gray-500">
+            <Link to="/" className="text-green-600 hover:underline">
+              Back to Home
+            </Link>
           </div>
         </div>
       </div>

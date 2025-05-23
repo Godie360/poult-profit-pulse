@@ -12,6 +12,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -31,13 +38,10 @@ const treatmentSchema = z.object({
     required_error: "Date is required",
   }),
   penId: z.string().min(1, "Pen ID is required"),
-  treatment: z.string().min(3, "Treatment description is required"),
+  treatmentType: z.string().min(1, "Treatment type is required"),
   medication: z.string().min(1, "Medication is required"),
-  cost: z.coerce.number().min(0, "Must be a positive number"),
+  cost: z.coerce.number().min(0, "Cost must be a positive number"),
   notes: z.string().optional(),
-  treatmentType: z.enum(["preventive", "emergency", "followup"], {
-    required_error: "Treatment type is required",
-  }),
 });
 
 type TreatmentForm = z.infer<typeof treatmentSchema>;
@@ -48,11 +52,10 @@ const VetDashboard = () => {
     defaultValues: {
       date: new Date(),
       penId: "",
-      treatment: "",
+      treatmentType: "",
       medication: "",
       cost: 0,
       notes: "",
-      treatmentType: "preventive",
     },
   });
 
@@ -62,7 +65,7 @@ const VetDashboard = () => {
     
     toast({
       title: "Treatment record submitted",
-      description: `Successfully recorded ${data.treatmentType} treatment for pen ${data.penId}.`,
+      description: `Successfully recorded ${data.treatmentType} for pen ${data.penId}.`,
     });
     
     // Reset the form
@@ -72,13 +75,13 @@ const VetDashboard = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-800">Vet Dashboard</h1>
-        <p className="text-gray-600">Record treatments and medications</p>
+        <h1 className="text-2xl font-bold text-gray-800">Veterinary Dashboard</h1>
+        <p className="text-gray-600">Record treatments and monitor poultry health</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Treatment Record</CardTitle>
+          <CardTitle>Record Treatment</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -89,7 +92,7 @@ const VetDashboard = () => {
                   name="date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Date</FormLabel>
+                      <FormLabel>Treatment Date</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -141,13 +144,27 @@ const VetDashboard = () => {
 
                 <FormField
                   control={form.control}
-                  name="treatment"
+                  name="treatmentType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Treatment Given</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. Vaccination" {...field} />
-                      </FormControl>
+                      <FormLabel>Treatment Type</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select treatment type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="vaccination">Vaccination</SelectItem>
+                          <SelectItem value="medication">Medication</SelectItem>
+                          <SelectItem value="deworming">Deworming</SelectItem>
+                          <SelectItem value="vitamin">Vitamin Supplement</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -158,9 +175,9 @@ const VetDashboard = () => {
                   name="medication"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Medication Used</FormLabel>
+                      <FormLabel>Medication/Product Used</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Antibiotics" {...field} />
+                        <Input placeholder="e.g. Newcastle vaccine" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -180,27 +197,6 @@ const VetDashboard = () => {
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={form.control}
-                  name="treatmentType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Treatment Type</FormLabel>
-                      <FormControl>
-                        <select 
-                          className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          {...field}
-                        >
-                          <option value="preventive">Preventive</option>
-                          <option value="emergency">Emergency</option>
-                          <option value="followup">Follow-up</option>
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
               <FormField
@@ -211,8 +207,8 @@ const VetDashboard = () => {
                     <FormLabel>Health Notes</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Enter any additional health observations or notes"
-                        className="min-h-[100px]"
+                        placeholder="Enter any observations or additional information about the treatment" 
+                        className="min-h-[100px]" 
                         {...field} 
                       />
                     </FormControl>
@@ -228,6 +224,44 @@ const VetDashboard = () => {
               </div>
             </form>
           </Form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Treatments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b text-left">
+                  <th className="pb-2 font-medium">Date</th>
+                  <th className="pb-2 font-medium">Pen</th>
+                  <th className="pb-2 font-medium">Treatment</th>
+                  <th className="pb-2 font-medium">Medication</th>
+                  <th className="pb-2 font-medium">Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { date: "2025-05-22", pen: "Pen 1", treatment: "Vaccination", medication: "Newcastle", cost: 45 },
+                  { date: "2025-05-20", pen: "Pen 3", treatment: "Deworming", medication: "Ivermectin", cost: 30 },
+                  { date: "2025-05-18", pen: "Pen 2", treatment: "Medication", medication: "Antibiotics", cost: 55 },
+                  { date: "2025-05-15", pen: "Pen 1", treatment: "Vitamin", medication: "Multivitamin", cost: 25 },
+                  { date: "2025-05-12", pen: "Pen 4", treatment: "Vaccination", medication: "Gumboro", cost: 40 },
+                ].map((item, i) => (
+                  <tr key={i} className="border-b hover:bg-gray-50">
+                    <td className="py-3">{item.date}</td>
+                    <td className="py-3">{item.pen}</td>
+                    <td className="py-3">{item.treatment}</td>
+                    <td className="py-3">{item.medication}</td>
+                    <td className="py-3">${item.cost}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>

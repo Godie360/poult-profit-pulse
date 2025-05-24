@@ -95,20 +95,20 @@ const Records = () => {
 
   // Initial feed records
   const [feedRecords, setFeedRecords] = useState([
-    { date: "2025-05-20", type: "Layer Feed", quantity: 500, price: 450, supplier: "FarmSupply Co." },
-    { date: "2025-05-13", type: "Chick Starter", quantity: 250, price: 275, supplier: "Agro Feeds Ltd." },
-    { date: "2025-05-05", type: "Layer Feed", quantity: 600, price: 540, supplier: "FarmSupply Co." },
-    { date: "2025-04-28", type: "Grower Feed", quantity: 400, price: 380, supplier: "Green Farms" },
-    { date: "2025-04-20", type: "Layer Feed", quantity: 500, price: 450, supplier: "FarmSupply Co." },
+    { date: "2025-05-20", type: "Layer Feed", quantity: 500, price: 45000, supplier: "FarmSupply Co." },
+    { date: "2025-05-13", type: "Chick Starter", quantity: 250, price: 27500, supplier: "Agro Feeds Ltd." },
+    { date: "2025-05-05", type: "Layer Feed", quantity: 600, price: 54000, supplier: "FarmSupply Co." },
+    { date: "2025-04-28", type: "Grower Feed", quantity: 400, price: 38000, supplier: "Green Farms" },
+    { date: "2025-04-20", type: "Layer Feed", quantity: 500, price: 45000, supplier: "FarmSupply Co." },
   ]);
 
   // Initial medicine records
   const [medicineRecords, setMedicineRecords] = useState([
-    { date: "2025-05-18", medicine: "Antibiotics", quantity: "20 bottles", price: 160, supplier: "VetMed Supply" },
-    { date: "2025-05-10", medicine: "Vitamins", quantity: "15 packets", price: 90, supplier: "FarmCare" },
-    { date: "2025-05-02", medicine: "Vaccines", quantity: "50 doses", price: 250, supplier: "VetMed Supply" },
-    { date: "2025-04-25", medicine: "Dewormer", quantity: "10 bottles", price: 120, supplier: "Agro Health" },
-    { date: "2025-04-15", medicine: "Antibiotics", quantity: "15 bottles", price: 120, supplier: "VetMed Supply" },
+    { date: "2025-05-18", medicine: "Antibiotics", quantity: "20 bottles", price: 16000, supplier: "VetMed Supply" },
+    { date: "2025-05-10", medicine: "Vitamins", quantity: "15 packets", price: 19000, supplier: "FarmCare" },
+    { date: "2025-05-02", medicine: "Vaccines", quantity: "50 doses", price: 25000, supplier: "VetMed Supply" },
+    { date: "2025-04-25", medicine: "Dewormer", quantity: "10 bottles", price: 12000, supplier: "Agro Health" },
+    { date: "2025-04-15", medicine: "Antibiotics", quantity: "15 bottles", price: 13000, supplier: "VetMed Supply" },
   ]);
 
   const handleAddRecord = () => {
@@ -166,7 +166,7 @@ const Records = () => {
     
     toast({
       title: "Feed record added",
-      description: `${data.quantity}kg of ${data.feedType} purchased for $${data.price}`,
+      description: `${data.quantity}kg of ${data.feedType} purchased for ${data.price} Tsh`,
     });
     
     setIsAddRecordDialogOpen(false);
@@ -190,7 +190,7 @@ const Records = () => {
     
     toast({
       title: "Medicine record added",
-      description: `${data.quantity} of ${data.medicine} purchased for $${data.price}`,
+      description: `${data.quantity} of ${data.medicine} purchased for ${data.price} Tsh`,
     });
     
     setIsAddRecordDialogOpen(false);
@@ -257,7 +257,7 @@ const Records = () => {
                         <td className="py-3">{item.date}</td>
                         <td className="py-3">{item.type}</td>
                         <td className="py-3">{item.quantity}</td>
-                        <td className="py-3">${item.price}</td>
+                        <td className="py-3">{item.price} Tsh</td>
                         <td className="py-3">{item.supplier}</td>
                       </tr>
                     ))}
@@ -296,7 +296,7 @@ const Records = () => {
                         <td className="py-3">{item.date}</td>
                         <td className="py-3">{item.medicine}</td>
                         <td className="py-3">{item.quantity}</td>
-                        <td className="py-3">${item.price}</td>
+                        <td className="py-3">{item.price} Tsh</td>
                         <td className="py-3">{item.supplier}</td>
                       </tr>
                     ))}
@@ -405,7 +405,7 @@ const Records = () => {
                     name="price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Price ($)</FormLabel>
+                        <FormLabel>Price (Tsh)</FormLabel>
                         <FormControl>
                           <Input type="number" min="0" step="0.01" {...field} />
                         </FormControl>
@@ -515,7 +515,7 @@ const Records = () => {
                     name="price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Price ($)</FormLabel>
+                        <FormLabel>Price (Tsh)</FormLabel>
                         <FormControl>
                           <Input type="number" min="0" step="0.01" {...field} />
                         </FormControl>

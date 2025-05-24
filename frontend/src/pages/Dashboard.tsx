@@ -55,7 +55,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="flex justify-between items-center">
-              <div className="text-2xl font-bold">$12,450</div>
+              <div className="text-2xl font-bold">120,400 Tsh</div>
               <div className="flex items-center text-green-600">
                 <ArrowUpRight className="h-4 w-4 mr-1" />
                 <span className="text-sm">12%</span>
@@ -71,7 +71,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="flex justify-between items-center">
-              <div className="text-2xl font-bold">$7,230</div>
+              <div className="text-2xl font-bold">70,000 Tsh</div>
               <div className="flex items-center text-red-600">
                 <ArrowDownRight className="h-4 w-4 mr-1" />
                 <span className="text-sm">5%</span>
@@ -215,7 +215,7 @@ const Dashboard = () => {
                     <div className="text-sm text-gray-500">{expense.description}</div>
                   </div>
                   <div>
-                    <div className="text-sm font-medium">${expense.amount}</div>
+                    <div className="text-sm font-medium">{expense.amount} Tsh</div>
                     <div className="text-xs text-gray-500">{expense.date}</div>
                   </div>
                 </div>

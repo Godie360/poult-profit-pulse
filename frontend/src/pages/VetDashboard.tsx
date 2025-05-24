@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
   FormControl,
@@ -11,11 +12,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "@/hooks/use-toast";
-import { CalendarIcon, ArrowDown } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -24,91 +32,75 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-const dailyLogSchema = z.object({
+const treatmentSchema = z.object({
   date: z.date({
     required_error: "Date is required",
   }),
   penId: z.string().min(1, "Pen ID is required"),
-  eggsCollected: z.coerce.number().min(0, "Must be a positive number"),
-  poultryDeaths: z.coerce.number().min(0, "Must be a positive number"),
-  poultrySold: z.coerce.number().min(0, "Must be a positive number"),
-  salesAmount: z.coerce.number().min(0, "Must be a positive number"),
+  treatmentType: z.string().min(1, "Treatment type is required"),
+  medication: z.string().min(1, "Medication is required"),
+  cost: z.coerce.number().min(0, "Cost must be a positive number"),
+  notes: z.string().optional(),
 });
 
-type DailyLogForm = z.infer<typeof dailyLogSchema>;
+type TreatmentForm = z.infer<typeof treatmentSchema>;
 
-const PoultryWorker = () => {
-  const [logs, setLogs] = useState<Array<{
-    date: string;
-    penId: string;
-    eggsCollected: number;
-    poultryDeaths: number;
-    poultrySold: number;
-    salesAmount: number;
-  }>>([]);
+const VetDashboard = () => {
+  const [treatments, setTreatments] = useState([
+    { date: "2025-05-22", pen: "Pen 1", treatment: "Vaccination", medication: "Newcastle", cost: 45 },
+    { date: "2025-05-20", pen: "Pen 3", treatment: "Deworming", medication: "Ivermectin", cost: 30 },
+    { date: "2025-05-18", pen: "Pen 2", treatment: "Medication", medication: "Antibiotics", cost: 55 },
+    { date: "2025-05-15", pen: "Pen 1", treatment: "Vitamin", medication: "Multivitamin", cost: 25 },
+    { date: "2025-05-12", pen: "Pen 4", treatment: "Vaccination", medication: "Gumboro", cost: 40 },
+  ]);
 
-  const form = useForm<DailyLogForm>({
-    resolver: zodResolver(dailyLogSchema),
+  const form = useForm<TreatmentForm>({
+    resolver: zodResolver(treatmentSchema),
     defaultValues: {
       date: new Date(),
       penId: "",
-      eggsCollected: 0,
-      poultryDeaths: 0,
-      poultrySold: 0,
-      salesAmount: 0,
+      treatmentType: "",
+      medication: "",
+      cost: 0,
+      notes: "",
     },
   });
 
-  const onSubmit = (data: DailyLogForm) => {
+  const onSubmit = (data: TreatmentForm) => {
     // In a real application with DB connection:
-    // 1. Make API call to create a new daily log
-    // 2. Update logs list with response
+    // 1. Make API call to create a new treatment record
+    // 2. Update treatment records list with response
     
-    const newLog = {
+    const newTreatment = {
       date: format(data.date, "yyyy-MM-dd"),
-      penId: data.penId,
-      eggsCollected: data.eggsCollected,
-      poultryDeaths: data.poultryDeaths,
-      poultrySold: data.poultrySold,
-      salesAmount: data.salesAmount
+      pen: `Pen ${data.penId}`,
+      treatment: data.treatmentType,
+      medication: data.medication,
+      cost: data.cost
     };
     
-    setLogs([newLog, ...logs]);
+    setTreatments([newTreatment, ...treatments]);
     
     toast({
-      title: "Daily log submitted",
-      description: `Successfully recorded ${data.eggsCollected} eggs from pen ${data.penId} on ${format(data.date, "PP")}.`,
+      title: "Treatment record submitted",
+      description: `Successfully recorded ${data.treatmentType} for pen ${data.penId}.`,
     });
     
     // Reset the form
-    form.reset({
-      date: new Date(),
-      penId: "",
-      eggsCollected: 0,
-      poultryDeaths: 0,
-      poultrySold: 0,
-      salesAmount: 0,
-    });
+    form.reset();
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-800">Poultry Worker Dashboard</h1>
-        <p className="text-gray-600">Record daily poultry data and activities</p>
+        <h1 className="text-2xl font-bold text-gray-800">Veterinary Dashboard</h1>
+        <p className="text-gray-600">Record treatments and monitor poultry health</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Daily Log Entry</CardTitle>
+          <CardTitle>Record Treatment</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -119,7 +111,7 @@ const PoultryWorker = () => {
                   name="date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Date</FormLabel>
+                      <FormLabel>Treatment Date</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -182,12 +174,40 @@ const PoultryWorker = () => {
 
                 <FormField
                   control={form.control}
-                  name="eggsCollected"
+                  name="treatmentType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Eggs Collected</FormLabel>
+                      <FormLabel>Treatment Type</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select treatment type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="vaccination">Vaccination</SelectItem>
+                          <SelectItem value="medication">Medication</SelectItem>
+                          <SelectItem value="deworming">Deworming</SelectItem>
+                          <SelectItem value="vitamin">Vitamin Supplement</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="medication"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Medication/Product Used</FormLabel>
                       <FormControl>
-                        <Input type="number" min="0" {...field} />
+                        <Input placeholder="e.g. Newcastle vaccine" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -196,38 +216,10 @@ const PoultryWorker = () => {
 
                 <FormField
                   control={form.control}
-                  name="poultryDeaths"
+                  name="cost"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Poultry Deaths</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="0" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="poultrySold"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Poultry Sold</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="0" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="salesAmount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sales Amount ($)</FormLabel>
+                      <FormLabel>Cost (Tsh)</FormLabel>
                       <FormControl>
                         <Input type="number" min="0" step="0.01" {...field} />
                       </FormControl>
@@ -237,9 +229,27 @@ const PoultryWorker = () => {
                 />
               </div>
 
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Health Notes</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Enter any observations or additional information about the treatment" 
+                        className="min-h-[100px]" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="flex justify-end">
                 <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                  Submit Daily Log
+                  Submit Treatment Record
                 </Button>
               </div>
             </form>
@@ -247,43 +257,39 @@ const PoultryWorker = () => {
         </CardContent>
       </Card>
 
-      {logs.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Daily Logs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b text-left">
-                    <th className="pb-2 font-medium">Date</th>
-                    <th className="pb-2 font-medium">Pen</th>
-                    <th className="pb-2 font-medium">Eggs</th>
-                    <th className="pb-2 font-medium">Deaths</th>
-                    <th className="pb-2 font-medium">Sold</th>
-                    <th className="pb-2 font-medium">Sales</th>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Treatments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b text-left">
+                  <th className="pb-2 font-medium">Date</th>
+                  <th className="pb-2 font-medium">Pen</th>
+                  <th className="pb-2 font-medium">Treatment</th>
+                  <th className="pb-2 font-medium">Medication</th>
+                  <th className="pb-2 font-medium">Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {treatments.map((item, i) => (
+                  <tr key={i} className="border-b hover:bg-gray-50">
+                    <td className="py-3">{item.date}</td>
+                    <td className="py-3">{item.pen}</td>
+                    <td className="py-3">{item.treatment}</td>
+                    <td className="py-3">{item.medication}</td>
+                    <td className="py-3">{item.cost} Tsh</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {logs.map((log, i) => (
-                    <tr key={i} className="border-b hover:bg-gray-50">
-                      <td className="py-3">{log.date}</td>
-                      <td className="py-3">Pen {log.penId}</td>
-                      <td className="py-3">{log.eggsCollected}</td>
-                      <td className="py-3">{log.poultryDeaths}</td>
-                      <td className="py-3">{log.poultrySold}</td>
-                      <td className="py-3">${log.salesAmount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default PoultryWorker;
+export default VetDashboard;

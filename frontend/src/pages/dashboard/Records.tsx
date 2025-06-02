@@ -1,10 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Filter, ArrowDownUp } from "lucide-react";
+import { PlusCircle, Filter, ArrowDownUp, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { recordsService, RecordType, FeedRecord, MedicineRecord, CreateFeedRecordRequest, CreateMedicineRecordRequest } from "@/api";
 import {
   Dialog,
   DialogContent,
@@ -70,6 +71,12 @@ const Records = () => {
   const [isAddRecordDialogOpen, setIsAddRecordDialogOpen] = useState(false);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState("desc");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // State for records
+  const [feedRecords, setFeedRecords] = useState<FeedRecord[]>([]);
+  const [medicineRecords, setMedicineRecords] = useState<MedicineRecord[]>([]);
 
   const feedForm = useForm<FeedRecordForm>({
     resolver: zodResolver(feedRecordSchema),
@@ -93,23 +100,35 @@ const Records = () => {
     },
   });
 
-  // Initial feed records
-  const [feedRecords, setFeedRecords] = useState([
-    { date: "2025-05-20", type: "Layer Feed", quantity: 500, price: 45000, supplier: "FarmSupply Co." },
-    { date: "2025-05-13", type: "Chick Starter", quantity: 250, price: 27500, supplier: "Agro Feeds Ltd." },
-    { date: "2025-05-05", type: "Layer Feed", quantity: 600, price: 54000, supplier: "FarmSupply Co." },
-    { date: "2025-04-28", type: "Grower Feed", quantity: 400, price: 38000, supplier: "Green Farms" },
-    { date: "2025-04-20", type: "Layer Feed", quantity: 500, price: 45000, supplier: "FarmSupply Co." },
-  ]);
+  // Fetch records from API
+  useEffect(() => {
+    const fetchRecords = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-  // Initial medicine records
-  const [medicineRecords, setMedicineRecords] = useState([
-    { date: "2025-05-18", medicine: "Antibiotics", quantity: "20 bottles", price: 16000, supplier: "VetMed Supply" },
-    { date: "2025-05-10", medicine: "Vitamins", quantity: "15 packets", price: 19000, supplier: "FarmCare" },
-    { date: "2025-05-02", medicine: "Vaccines", quantity: "50 doses", price: 25000, supplier: "VetMed Supply" },
-    { date: "2025-04-25", medicine: "Dewormer", quantity: "10 bottles", price: 12000, supplier: "Agro Health" },
-    { date: "2025-04-15", medicine: "Antibiotics", quantity: "15 bottles", price: 13000, supplier: "VetMed Supply" },
-  ]);
+        // Fetch feed records
+        const feedData = await recordsService.getAllRecords(RecordType.FEED);
+        setFeedRecords(feedData as FeedRecord[]);
+
+        // Fetch medicine records
+        const medicineData = await recordsService.getAllRecords(RecordType.MEDICINE);
+        setMedicineRecords(medicineData as MedicineRecord[]);
+      } catch (err) {
+        console.error('Error fetching records:', err);
+        setError('Failed to load records. Please try again.');
+        toast({
+          title: 'Error',
+          description: 'Failed to load records. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecords();
+  }, []);
 
   const handleAddRecord = () => {
     setIsAddRecordDialogOpen(true);
@@ -122,7 +141,7 @@ const Records = () => {
   const handleSort = () => {
     const newSortOrder = sortOrder === "desc" ? "asc" : "desc";
     setSortOrder(newSortOrder);
-    
+
     // Sort feed records
     const sortedFeedRecords = [...feedRecords].sort((a, b) => {
       if (newSortOrder === "asc") {
@@ -132,7 +151,7 @@ const Records = () => {
       }
     });
     setFeedRecords(sortedFeedRecords);
-    
+
     // Sort medicine records
     const sortedMedicineRecords = [...medicineRecords].sort((a, b) => {
       if (newSortOrder === "asc") {
@@ -142,59 +161,79 @@ const Records = () => {
       }
     });
     setMedicineRecords(sortedMedicineRecords);
-    
+
     toast({
       title: "Records sorted",
       description: `Records are now sorted ${newSortOrder === "asc" ? "oldest first" : "newest first"}`,
     });
   };
 
-  const onSubmitFeedRecord = (data: FeedRecordForm) => {
-    // In a real application with DB connection:
-    // 1. Make API call to create a new feed record
-    // 2. Update feed records list with response
-    
-    const newRecord = {
-      date: format(data.date, "yyyy-MM-dd"),
-      type: data.feedType,
-      quantity: data.quantity,
-      price: data.price,
-      supplier: data.supplier,
-    };
-    
-    setFeedRecords([newRecord, ...feedRecords]);
-    
-    toast({
-      title: "Feed record added",
-      description: `${data.quantity}kg of ${data.feedType} purchased for ${data.price} Tsh`,
-    });
-    
-    setIsAddRecordDialogOpen(false);
-    feedForm.reset();
+  const onSubmitFeedRecord = async (data: FeedRecordForm) => {
+    try {
+      // Create feed record request
+      const feedRecordRequest: CreateFeedRecordRequest = {
+        date: data.date,
+        feedType: data.feedType,
+        quantity: data.quantity,
+        price: data.price,
+        supplier: data.supplier,
+      };
+
+      // Make API call to create a new feed record
+      const newRecord = await recordsService.createFeedRecord(feedRecordRequest);
+
+      // Update feed records list with response
+      setFeedRecords([newRecord, ...feedRecords]);
+
+      toast({
+        title: "Feed record added",
+        description: `${data.quantity}kg of ${data.feedType} purchased for ${data.price} Tsh`,
+      });
+
+      setIsAddRecordDialogOpen(false);
+      feedForm.reset();
+    } catch (err) {
+      console.error('Error creating feed record:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to create feed record. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const onSubmitMedicineRecord = (data: MedicineRecordForm) => {
-    // In a real application with DB connection:
-    // 1. Make API call to create a new medicine record
-    // 2. Update medicine records list with response
-    
-    const newRecord = {
-      date: format(data.date, "yyyy-MM-dd"),
-      medicine: data.medicine,
-      quantity: data.quantity,
-      price: data.price,
-      supplier: data.supplier,
-    };
-    
-    setMedicineRecords([newRecord, ...medicineRecords]);
-    
-    toast({
-      title: "Medicine record added",
-      description: `${data.quantity} of ${data.medicine} purchased for ${data.price} Tsh`,
-    });
-    
-    setIsAddRecordDialogOpen(false);
-    medicineForm.reset();
+  const onSubmitMedicineRecord = async (data: MedicineRecordForm) => {
+    try {
+      // Create medicine record request
+      const medicineRecordRequest: CreateMedicineRecordRequest = {
+        date: data.date,
+        medicine: data.medicine,
+        quantity: data.quantity,
+        price: data.price,
+        supplier: data.supplier,
+      };
+
+      // Make API call to create a new medicine record
+      const newRecord = await recordsService.createMedicineRecord(medicineRecordRequest);
+
+      // Update medicine records list with response
+      setMedicineRecords([newRecord, ...medicineRecords]);
+
+      toast({
+        title: "Medicine record added",
+        description: `${data.quantity} of ${data.medicine} purchased for ${data.price} Tsh`,
+      });
+
+      setIsAddRecordDialogOpen(false);
+      medicineForm.reset();
+    } catch (err) {
+      console.error('Error creating medicine record:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to create medicine record. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -233,37 +272,47 @@ const Records = () => {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Feed Purchase History</CardTitle>
-                <Button variant="outline" size="sm" onClick={handleSort}>
+                <Button variant="outline" size="sm" onClick={handleSort} disabled={isLoading}>
                   <ArrowDownUp className="mr-2 h-3 w-3" />
                   {sortOrder === "desc" ? "Newest First" : "Oldest First"}
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="pb-2 font-medium">Date</th>
-                      <th className="pb-2 font-medium">Feed Type</th>
-                      <th className="pb-2 font-medium">Quantity (kg)</th>
-                      <th className="pb-2 font-medium">Price</th>
-                      <th className="pb-2 font-medium">Supplier</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {feedRecords.map((item, i) => (
-                      <tr key={i} className="border-b hover:bg-gray-50">
-                        <td className="py-3">{item.date}</td>
-                        <td className="py-3">{item.type}</td>
-                        <td className="py-3">{item.quantity}</td>
-                        <td className="py-3">{item.price} Tsh</td>
-                        <td className="py-3">{item.supplier}</td>
+              {isLoading ? (
+                <div className="flex justify-center items-center h-40">
+                  <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+                </div>
+              ) : error ? (
+                <div className="text-center py-4 text-red-500">{error}</div>
+              ) : feedRecords.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">No feed records found</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="pb-2 font-medium">Date</th>
+                        <th className="pb-2 font-medium">Feed Type</th>
+                        <th className="pb-2 font-medium">Quantity (kg)</th>
+                        <th className="pb-2 font-medium">Price</th>
+                        <th className="pb-2 font-medium">Supplier</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {feedRecords.map((item) => (
+                        <tr key={item._id} className="border-b hover:bg-gray-50">
+                          <td className="py-3">{new Date(item.date).toLocaleDateString()}</td>
+                          <td className="py-3">{item.feedType}</td>
+                          <td className="py-3">{item.quantity}</td>
+                          <td className="py-3">{item.price.toLocaleString()} TSH</td>
+                          <td className="py-3">{item.supplier}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -272,37 +321,47 @@ const Records = () => {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Medicine Purchase History</CardTitle>
-                <Button variant="outline" size="sm" onClick={handleSort}>
+                <Button variant="outline" size="sm" onClick={handleSort} disabled={isLoading}>
                   <ArrowDownUp className="mr-2 h-3 w-3" />
                   {sortOrder === "desc" ? "Newest First" : "Oldest First"}
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b text-left">
-                      <th className="pb-2 font-medium">Date</th>
-                      <th className="pb-2 font-medium">Medicine</th>
-                      <th className="pb-2 font-medium">Quantity</th>
-                      <th className="pb-2 font-medium">Price</th>
-                      <th className="pb-2 font-medium">Supplier</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {medicineRecords.map((item, i) => (
-                      <tr key={i} className="border-b hover:bg-gray-50">
-                        <td className="py-3">{item.date}</td>
-                        <td className="py-3">{item.medicine}</td>
-                        <td className="py-3">{item.quantity}</td>
-                        <td className="py-3">{item.price} Tsh</td>
-                        <td className="py-3">{item.supplier}</td>
+              {isLoading ? (
+                <div className="flex justify-center items-center h-40">
+                  <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+                </div>
+              ) : error ? (
+                <div className="text-center py-4 text-red-500">{error}</div>
+              ) : medicineRecords.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">No medicine records found</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="pb-2 font-medium">Date</th>
+                        <th className="pb-2 font-medium">Medicine</th>
+                        <th className="pb-2 font-medium">Quantity</th>
+                        <th className="pb-2 font-medium">Price</th>
+                        <th className="pb-2 font-medium">Supplier</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {medicineRecords.map((item) => (
+                        <tr key={item._id} className="border-b hover:bg-gray-50">
+                          <td className="py-3">{new Date(item.date).toLocaleDateString()}</td>
+                          <td className="py-3">{item.medicine}</td>
+                          <td className="py-3">{item.quantity}</td>
+                          <td className="py-3">{item.price.toLocaleString()} TSH</td>
+                          <td className="py-3">{item.supplier}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -317,7 +376,7 @@ const Records = () => {
               Enter the details of the {activeTab === "feed" ? "feed purchase" : "medicine purchase"}.
             </DialogDescription>
           </DialogHeader>
-          
+
           {activeTab === "feed" ? (
             <Form {...feedForm}>
               <form onSubmit={feedForm.handleSubmit(onSubmitFeedRecord)} className="space-y-4">
@@ -427,7 +486,7 @@ const Records = () => {
                     )}
                   />
                 </div>
-                
+
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsAddRecordDialogOpen(false)}>
                     Cancel
@@ -537,7 +596,7 @@ const Records = () => {
                     )}
                   />
                 </div>
-                
+
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsAddRecordDialogOpen(false)}>
                     Cancel
@@ -551,7 +610,7 @@ const Records = () => {
           )}
         </DialogContent>
       </Dialog>
-      
+
       {/* Filter Popover - Would connect to DB in real implementation */}
       <Popover open={isFilterPopoverOpen} onOpenChange={setIsFilterPopoverOpen}>
         <PopoverTrigger asChild>
@@ -578,7 +637,7 @@ const Records = () => {
                   });
                 }}>Last 3 months</Button>
               </div>
-              
+
               {activeTab === "feed" && (
                 <div className="pt-2">
                   <h4 className="text-sm font-medium">Feed Type</h4>
@@ -600,7 +659,7 @@ const Records = () => {
                   </div>
                 </div>
               )}
-              
+
               <div className="pt-3 flex justify-end">
                 <Button size="sm" onClick={() => {
                   setIsFilterPopoverOpen(false);

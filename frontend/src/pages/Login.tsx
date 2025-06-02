@@ -17,9 +17,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { Logo } from "@/components/ui/logo";
+import { authService } from "@/api";
 
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  emailOrUsername: z.string().min(1, "Email or username is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -33,54 +34,49 @@ const Login = () => {
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      emailOrUsername: "",
       password: "",
     },
   });
 
-  const onSubmit = (data: LoginForm) => {
+  const onSubmit = async (data: LoginForm) => {
     setIsSubmitting(true);
-    
-    // In a real application with DB connection:
-    // 1. Make API call to authenticate user
-    // 2. Store user data and token in local storage or context
-    // 3. Redirect based on role
-    console.log("Login data:", data);
-    
-    // Simulate role-based redirection with loading state
-    setTimeout(() => {
-      const email = data.email.toLowerCase();
+
+    try {
+      // Call the authService login method
+      const response = await authService.login(data);
+
+      // Determine redirect path based on user role
       let redirectPath = "/dashboard";
-      let role = "Farmer";
-      
-      if (email.includes("worker")) {
+      const role = response.user.role;
+
+      if (role === 'worker') {
         redirectPath = "/worker";
-        role = "Poultry Worker";
-      } else if (email.includes("vet")) {
+      } else if (role === 'vet') {
         redirectPath = "/vet";
-        role = "Veterinarian";
       }
-      
-      // Store user info in localStorage (in a real app, this would include JWT token)
-      const userInfo = {
-        email: data.email,
-        role: role,
-        name: email.split('@')[0],
-        lastLogin: new Date().toISOString()
-      };
-      
-      localStorage.setItem('dgpoultry_user', JSON.stringify(userInfo));
-      
+
       // Show success message
       toast({
         title: "Login successful!",
-        description: `Welcome back to DG Poultry, ${role}.`,
+        description: `Welcome back to DG Poultry, ${response.user.fullName}.`,
       });
-      
+
       // Redirect to dashboard based on role
       navigate(redirectPath);
+    } catch (error) {
+      // Handle login error
+      console.error("Login error:", error);
+
+      // Show error message
+      toast({
+        title: "Login failed",
+        description: error.response?.data?.message || "Invalid credentials. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1000); // Simulate network request
+    }
   };
 
   return (
@@ -96,7 +92,7 @@ const Login = () => {
         <div className="w-full max-w-md">
           <div className="bg-white rounded-lg shadow-md p-6 md:p-8">
             <h1 className="text-2xl font-bold text-green-800 mb-6 text-center">Login to Your Account</h1>
-            
+
             <div className="mb-6 flex justify-center">
               <div className="bg-green-50 p-3 rounded-full">
                 <Logo size="lg" withText={false} />
@@ -107,12 +103,12 @@ const Login = () => {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="email"
+                  name="emailOrUsername"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email Address</FormLabel>
+                      <FormLabel>Email or Username</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="john@example.com" {...field} />
+                        <Input type="text" placeholder="john@example.com or johnsmith" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -171,7 +167,7 @@ const Login = () => {
                 Register Now
               </Link>
             </div>
-            
+
             {/* Demo accounts for testing */}
             <div className="mt-6 pt-6 border-t border-gray-200">
               <p className="text-xs text-center text-gray-500 mb-2">Demo Accounts</p>
@@ -181,7 +177,7 @@ const Login = () => {
                   size="sm"
                   className="text-xs py-1 h-auto"
                   onClick={() => {
-                    form.setValue("email", "farmer@example.com");
+                    form.setValue("emailOrUsername", "farmer@example.com");
                     form.setValue("password", "password123");
                   }}
                 >
@@ -192,7 +188,7 @@ const Login = () => {
                   size="sm"
                   className="text-xs py-1 h-auto"
                   onClick={() => {
-                    form.setValue("email", "worker@example.com");
+                    form.setValue("emailOrUsername", "worker@example.com");
                     form.setValue("password", "password123");
                   }}
                 >
@@ -203,7 +199,7 @@ const Login = () => {
                   size="sm"
                   className="text-xs py-1 h-auto"
                   onClick={() => {
-                    form.setValue("email", "vet@example.com");
+                    form.setValue("emailOrUsername", "vet@example.com");
                     form.setValue("password", "password123");
                   }}
                 >
@@ -212,7 +208,7 @@ const Login = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="mt-4 text-center text-sm text-gray-500">
             <Link to="/" className="text-green-600 hover:underline">
               Back to Home

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "@/hooks/use-toast";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -32,6 +32,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { pensService, recordsService, Pen, RecordType, MedicineRecord, CreateMedicineRecordRequest } from "@/api";
 
 const treatmentSchema = z.object({
   date: z.date({
@@ -47,13 +48,61 @@ const treatmentSchema = z.object({
 type TreatmentForm = z.infer<typeof treatmentSchema>;
 
 const VetDashboard = () => {
-  const [treatments, setTreatments] = useState([
-    { date: "2025-05-22", pen: "Pen 1", treatment: "Vaccination", medication: "Newcastle", cost: 45 },
-    { date: "2025-05-20", pen: "Pen 3", treatment: "Deworming", medication: "Ivermectin", cost: 30 },
-    { date: "2025-05-18", pen: "Pen 2", treatment: "Medication", medication: "Antibiotics", cost: 55 },
-    { date: "2025-05-15", pen: "Pen 1", treatment: "Vitamin", medication: "Multivitamin", cost: 25 },
-    { date: "2025-05-12", pen: "Pen 4", treatment: "Vaccination", medication: "Gumboro", cost: 40 },
-  ]);
+  const [treatments, setTreatments] = useState<MedicineRecord[]>([]);
+  const [isLoadingTreatments, setIsLoadingTreatments] = useState(true);
+  const [treatmentError, setTreatmentError] = useState<string | null>(null);
+
+  const [pens, setPens] = useState<Pen[]>([]);
+  const [isLoadingPens, setIsLoadingPens] = useState(true);
+  const [penError, setPenError] = useState<string | null>(null);
+
+  // Fetch pens from the API
+  useEffect(() => {
+    const fetchPens = async () => {
+      try {
+        setIsLoadingPens(true);
+        setPenError(null);
+        const pensData = await pensService.getAllPens();
+        setPens(pensData);
+      } catch (error) {
+        console.error('Error fetching pens:', error);
+        setPenError('Failed to load pens. Please try again.');
+        toast({
+          title: 'Error',
+          description: 'Failed to load pens. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingPens(false);
+      }
+    };
+
+    fetchPens();
+  }, []);
+
+  // Fetch treatment records from the API
+  useEffect(() => {
+    const fetchTreatments = async () => {
+      try {
+        setIsLoadingTreatments(true);
+        setTreatmentError(null);
+        const recordsData = await recordsService.getAllRecords(RecordType.MEDICINE);
+        setTreatments(recordsData as MedicineRecord[]);
+      } catch (error) {
+        console.error('Error fetching treatment records:', error);
+        setTreatmentError('Failed to load treatment records. Please try again.');
+        toast({
+          title: 'Error',
+          description: 'Failed to load treatment records. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingTreatments(false);
+      }
+    };
+
+    fetchTreatments();
+  }, []);
 
   const form = useForm<TreatmentForm>({
     resolver: zodResolver(treatmentSchema),
@@ -67,28 +116,56 @@ const VetDashboard = () => {
     },
   });
 
-  const onSubmit = (data: TreatmentForm) => {
-    // In a real application with DB connection:
-    // 1. Make API call to create a new treatment record
-    // 2. Update treatment records list with response
-    
-    const newTreatment = {
-      date: format(data.date, "yyyy-MM-dd"),
-      pen: `Pen ${data.penId}`,
-      treatment: data.treatmentType,
-      medication: data.medication,
-      cost: data.cost
-    };
-    
-    setTreatments([newTreatment, ...treatments]);
-    
-    toast({
-      title: "Treatment record submitted",
-      description: `Successfully recorded ${data.treatmentType} for pen ${data.penId}.`,
-    });
-    
-    // Reset the form
-    form.reset();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const onSubmit = async (data: TreatmentForm) => {
+    // Find the selected pen to get its name
+    const selectedPen = pens.find(pen => pen._id === data.penId);
+
+    if (!selectedPen) {
+      toast({
+        title: "Error",
+        description: "Selected pen not found. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // Create medicine record request
+      const medicineRecordRequest: CreateMedicineRecordRequest = {
+        date: data.date,
+        medicine: data.medication,
+        quantity: data.treatmentType, // Using treatmentType as quantity
+        price: data.cost,
+        supplier: "Veterinary Service", // Default supplier for vet treatments
+      };
+
+      // Make API call to create a new medicine record
+      const newRecord = await recordsService.createMedicineRecord(medicineRecordRequest);
+
+      // Update treatments list with the new record
+      setTreatments([newRecord, ...treatments]);
+
+      toast({
+        title: "Treatment record submitted",
+        description: `Successfully recorded ${data.treatmentType} for ${selectedPen.name}.`,
+      });
+
+      // Reset the form
+      form.reset();
+    } catch (error) {
+      console.error('Error creating treatment record:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save treatment record. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -146,25 +223,38 @@ const VetDashboard = () => {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="penId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Pen ID</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingPens}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a pen" />
+                            {isLoadingPens ? (
+                              <div className="flex items-center">
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                <span>Loading pens...</span>
+                              </div>
+                            ) : (
+                              <SelectValue placeholder="Select a pen" />
+                            )}
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="1">Pen 1</SelectItem>
-                          <SelectItem value="2">Pen 2</SelectItem>
-                          <SelectItem value="3">Pen 3</SelectItem>
-                          <SelectItem value="4">Pen 4</SelectItem>
-                          <SelectItem value="5">Pen 5</SelectItem>
+                          {penError ? (
+                            <div className="p-2 text-red-500 text-sm">{penError}</div>
+                          ) : pens.length === 0 ? (
+                            <div className="p-2 text-gray-500 text-sm">No pens found</div>
+                          ) : (
+                            pens.map((pen) => (
+                              <SelectItem key={pen._id} value={pen._id}>
+                                {pen.name} ({pen.birdCount} birds)
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -248,8 +338,19 @@ const VetDashboard = () => {
               />
 
               <div className="flex justify-end">
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                  Submit Treatment Record
+                <Button 
+                  type="submit" 
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Treatment Record"
+                  )}
                 </Button>
               </div>
             </form>
@@ -262,30 +363,40 @@ const VetDashboard = () => {
           <CardTitle>Recent Treatments</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b text-left">
-                  <th className="pb-2 font-medium">Date</th>
-                  <th className="pb-2 font-medium">Pen</th>
-                  <th className="pb-2 font-medium">Treatment</th>
-                  <th className="pb-2 font-medium">Medication</th>
-                  <th className="pb-2 font-medium">Cost</th>
-                </tr>
-              </thead>
-              <tbody>
-                {treatments.map((item, i) => (
-                  <tr key={i} className="border-b hover:bg-gray-50">
-                    <td className="py-3">{item.date}</td>
-                    <td className="py-3">{item.pen}</td>
-                    <td className="py-3">{item.treatment}</td>
-                    <td className="py-3">{item.medication}</td>
-                    <td className="py-3">{item.cost} Tsh</td>
+          {isLoadingTreatments ? (
+            <div className="flex justify-center items-center h-40">
+              <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+            </div>
+          ) : treatmentError ? (
+            <div className="text-center py-4 text-red-500">{treatmentError}</div>
+          ) : treatments.length === 0 ? (
+            <div className="text-center py-4 text-gray-500">No treatment records found</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b text-left">
+                    <th className="pb-2 font-medium">Date</th>
+                    <th className="pb-2 font-medium">Medicine</th>
+                    <th className="pb-2 font-medium">Treatment Type</th>
+                    <th className="pb-2 font-medium">Cost</th>
+                    <th className="pb-2 font-medium">Supplier</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {treatments.map((item) => (
+                    <tr key={item._id} className="border-b hover:bg-gray-50">
+                      <td className="py-3">{new Date(item.date).toLocaleDateString()}</td>
+                      <td className="py-3">{item.medicine}</td>
+                      <td className="py-3">{item.quantity}</td>
+                      <td className="py-3">{item.price.toLocaleString()} TSH</td>
+                      <td className="py-3">{item.supplier}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

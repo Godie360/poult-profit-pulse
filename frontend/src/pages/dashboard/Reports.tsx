@@ -75,7 +75,7 @@ const Reports = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Total Expenses</CardDescription>
-            <CardTitle className="text-2xl font-bold">${mockData.expenses}</CardTitle>
+            <CardTitle className="text-2xl font-bold">{mockData.expenses.toLocaleString()} TSH</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-xs text-gray-500">Last 30 days</div>
@@ -85,7 +85,7 @@ const Reports = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Total Income</CardDescription>
-            <CardTitle className="text-2xl font-bold">${mockData.income}</CardTitle>
+            <CardTitle className="text-2xl font-bold">{mockData.income.toLocaleString()} TSH</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-xs text-gray-500">Last 30 days</div>
@@ -95,7 +95,7 @@ const Reports = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Net Profit</CardDescription>
-            <CardTitle className="text-2xl font-bold">${mockData.profit}</CardTitle>
+            <CardTitle className="text-2xl font-bold">{mockData.profit.toLocaleString()} TSH</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-xs text-gray-500">Last 30 days</div>
@@ -124,21 +124,21 @@ const Reports = () => {
                           <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
                           <span className="text-sm">Feed</span>
                         </div>
-                        <p className="font-medium">${mockData.feedExpense} (69.1%)</p>
+                        <p className="font-medium">{mockData.feedExpense.toLocaleString()} TSH (69.1%)</p>
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center">
                           <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
                           <span className="text-sm">Medicine</span>
                         </div>
-                        <p className="font-medium">${mockData.medicineExpense} (9.6%)</p>
+                        <p className="font-medium">{mockData.medicineExpense.toLocaleString()} TSH (9.6%)</p>
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center">
                           <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
                           <span className="text-sm">Labor</span>
                         </div>
-                        <p className="font-medium">${mockData.laborExpense} (21.3%)</p>
+                        <p className="font-medium">{mockData.laborExpense.toLocaleString()} TSH (21.3%)</p>
                       </div>
                     </div>
                     <p className="text-gray-500 text-sm">A pie chart will be rendered here with actual data</p>

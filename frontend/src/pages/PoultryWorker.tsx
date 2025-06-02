@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "@/hooks/use-toast";
-import { CalendarIcon, ArrowDown } from "lucide-react";
+import { CalendarIcon, ArrowDown, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { pensService, dashboardService, Pen, DailyLog } from "@/api";
 
 const dailyLogSchema = z.object({
   date: z.date({
@@ -46,14 +47,44 @@ const dailyLogSchema = z.object({
 type DailyLogForm = z.infer<typeof dailyLogSchema>;
 
 const PoultryWorker = () => {
-  const [logs, setLogs] = useState<Array<{
-    date: string;
-    penId: string;
-    eggsCollected: number;
-    poultryDeaths: number;
-    poultrySold: number;
-    salesAmount: number;
-  }>>([]);
+  const [logs, setLogs] = useState<DailyLog[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(true);
+
+  const [pens, setPens] = useState<Pen[]>([]);
+  const [isLoadingPens, setIsLoadingPens] = useState(true);
+  const [penError, setPenError] = useState<string | null>(null);
+
+  // Fetch pens and logs from the API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch pens
+        setIsLoadingPens(true);
+        setPenError(null);
+        const pensData = await pensService.getAllPens();
+        setPens(pensData);
+        setIsLoadingPens(false);
+
+        // Fetch daily logs
+        setIsLoadingLogs(true);
+        const logsData = await dashboardService.getUserDailyLogs();
+        setLogs(logsData);
+        setIsLoadingLogs(false);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setPenError('Failed to load data. Please try again.');
+        toast({
+          title: 'Error',
+          description: 'Failed to load data. Please try again.',
+          variant: 'destructive',
+        });
+        setIsLoadingPens(false);
+        setIsLoadingLogs(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const form = useForm<DailyLogForm>({
     resolver: zodResolver(dailyLogSchema),
@@ -67,36 +98,66 @@ const PoultryWorker = () => {
     },
   });
 
-  const onSubmit = (data: DailyLogForm) => {
-    // In a real application with DB connection:
-    // 1. Make API call to create a new daily log
-    // 2. Update logs list with response
-    
-    const newLog = {
-      date: format(data.date, "yyyy-MM-dd"),
-      penId: data.penId,
-      eggsCollected: data.eggsCollected,
-      poultryDeaths: data.poultryDeaths,
-      poultrySold: data.poultrySold,
-      salesAmount: data.salesAmount
-    };
-    
-    setLogs([newLog, ...logs]);
-    
-    toast({
-      title: "Daily log submitted",
-      description: `Successfully recorded ${data.eggsCollected} eggs from pen ${data.penId} on ${format(data.date, "PP")}.`,
-    });
-    
-    // Reset the form
-    form.reset({
-      date: new Date(),
-      penId: "",
-      eggsCollected: 0,
-      poultryDeaths: 0,
-      poultrySold: 0,
-      salesAmount: 0,
-    });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const onSubmit = async (data: DailyLogForm) => {
+    // Find the selected pen to get its name
+    const selectedPen = pens.find(pen => pen._id === data.penId);
+
+    if (!selectedPen) {
+      toast({
+        title: "Error",
+        description: "Selected pen not found. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // Create daily log data
+      const logData = {
+        date: data.date,
+        penId: data.penId,
+        eggsCollected: data.eggsCollected,
+        poultryDeaths: data.poultryDeaths,
+        poultrySold: data.poultrySold || 0,
+        salesAmount: data.salesAmount || 0
+      };
+
+      // Make API call to create a new daily log
+      const newLog = await dashboardService.createDailyLog(logData);
+
+      // Update logs list with the new log
+      // We need to fetch all logs again to get the updated list with proper IDs
+      const updatedLogs = await dashboardService.getUserDailyLogs();
+      setLogs(updatedLogs);
+
+      toast({
+        title: "Daily log submitted",
+        description: `Successfully recorded ${data.eggsCollected} eggs from ${selectedPen.name} on ${format(data.date, "PP")}.`,
+      });
+
+      // Reset the form
+      form.reset({
+        date: new Date(),
+        penId: "",
+        eggsCollected: 0,
+        poultryDeaths: 0,
+        poultrySold: 0,
+        salesAmount: 0,
+      });
+    } catch (error) {
+      console.error('Error creating daily log:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to submit daily log. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -154,25 +215,38 @@ const PoultryWorker = () => {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="penId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Pen ID</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingPens}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a pen" />
+                            {isLoadingPens ? (
+                              <div className="flex items-center">
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                <span>Loading pens...</span>
+                              </div>
+                            ) : (
+                              <SelectValue placeholder="Select a pen" />
+                            )}
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="1">Pen 1</SelectItem>
-                          <SelectItem value="2">Pen 2</SelectItem>
-                          <SelectItem value="3">Pen 3</SelectItem>
-                          <SelectItem value="4">Pen 4</SelectItem>
-                          <SelectItem value="5">Pen 5</SelectItem>
+                          {penError ? (
+                            <div className="p-2 text-red-500 text-sm">{penError}</div>
+                          ) : pens.length === 0 ? (
+                            <div className="p-2 text-gray-500 text-sm">No pens found</div>
+                          ) : (
+                            pens.map((pen) => (
+                              <SelectItem key={pen._id} value={pen._id}>
+                                {pen.name} ({pen.birdCount} birds)
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -238,8 +312,19 @@ const PoultryWorker = () => {
               </div>
 
               <div className="flex justify-end">
-                <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                  Submit Daily Log
+                <Button 
+                  type="submit" 
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Daily Log"
+                  )}
                 </Button>
               </div>
             </form>
@@ -247,12 +332,16 @@ const PoultryWorker = () => {
         </CardContent>
       </Card>
 
-      {logs.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Daily Logs</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Daily Logs</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoadingLogs ? (
+            <div className="flex justify-center items-center h-40">
+              <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+            </div>
+          ) : logs.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -266,22 +355,24 @@ const PoultryWorker = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {logs.map((log, i) => (
-                    <tr key={i} className="border-b hover:bg-gray-50">
-                      <td className="py-3">{log.date}</td>
-                      <td className="py-3">Pen {log.penId}</td>
+                  {logs.map((log) => (
+                    <tr key={log._id} className="border-b hover:bg-gray-50">
+                      <td className="py-3">{new Date(log.date).toLocaleDateString()}</td>
+                      <td className="py-3">{log.penName || `Pen ${log.penId}`}</td>
                       <td className="py-3">{log.eggsCollected}</td>
                       <td className="py-3">{log.poultryDeaths}</td>
-                      <td className="py-3">{log.poultrySold}</td>
-                      <td className="py-3">{log.salesAmount} Tsh</td>
+                      <td className="py-3">{log.poultrySold || 0}</td>
+                      <td className="py-3">{(log.salesAmount || 0).toLocaleString()} Tsh</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <div className="text-center py-4 text-gray-500">No daily logs found</div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

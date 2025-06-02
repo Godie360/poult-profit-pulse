@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { Logo } from "@/components/ui/logo";
+import { authService } from "@/api";
 import {
   Select,
   SelectContent,
@@ -34,7 +35,11 @@ const registerSchemaStep1 = z.object({
 const registerSchemaStep2 = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   role: z.string().min(1, "Role is required"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters"),
+    // Temporarily removed regex validation for testing
+    // .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/, 
+    //   "Password must contain at least one uppercase letter, one lowercase letter, and one number, and can only contain letters and numbers"),
   confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match",
@@ -74,58 +79,77 @@ const Register = () => {
   const onSubmitStep1 = (data: RegisterFormStep1) => {
     setStep1Data(data);
     setStep(2);
-    
+
     // Pre-fill username with email prefix
     const emailPrefix = data.email.split('@')[0];
     step2Form.setValue("username", emailPrefix);
   };
 
-  const onSubmitStep2 = (data: RegisterFormStep2) => {
+  const onSubmitStep2 = async (data: RegisterFormStep2) => {
     if (!step1Data) return;
-    
+
+    console.log("Form data:", { ...step1Data, ...data });
+
     setIsSubmitting(true);
 
-    // Combine data from both steps
-    const fullData = {
-      ...step1Data,
-      ...data
-    };
-
-    // In a real application with DB connection:
-    // 1. Make API call to register user
-    // 2. Store user data and token in local storage or context
-    console.log("Registration data:", fullData);
-    
-    // Simulate API call
-    setTimeout(() => {
-      // Store user info in localStorage (in a real app, this would include JWT token)
-      const userInfo = {
-        email: step1Data.email,
-        name: step1Data.fullName,
-        role: data.role === "farmer" ? "Farmer" : data.role === "worker" ? "Poultry Worker" : "Veterinarian",
-        username: data.username,
-        lastLogin: new Date().toISOString()
+    try {
+      // Combine data from both steps and remove confirmPassword field
+      const { confirmPassword, ...dataWithoutConfirmPassword } = data;
+      const fullData = {
+        ...step1Data,
+        ...dataWithoutConfirmPassword
       };
-      
-      localStorage.setItem('dgpoultry_user', JSON.stringify(userInfo));
-      
+
+      console.log("Submitting registration data:", fullData);
+
+      // Make API call to register user
+      const response = await authService.register(fullData);
+
+      console.log("Registration response:", response);
+
+      // Reset both forms
+      step1Form.reset({
+        fullName: "",
+        email: "",
+        phone: "",
+      });
+
+      step2Form.reset({
+        username: "",
+        role: "",
+        password: "",
+        confirmPassword: "",
+      });
+
+      // Reset step1Data
+      setStep1Data(null);
+
       // Show success message
       toast({
         title: "Registration successful!",
         description: "You can now use the system with your new account.",
       });
-      
+
       // Redirect based on role
-      if (data.role === "worker") {
+      if (response.user.role === "worker") {
         navigate("/worker");
-      } else if (data.role === "vet") {
+      } else if (response.user.role === "vet") {
         navigate("/vet");
       } else {
         navigate("/dashboard");
       }
-      
+    } catch (error) {
+      console.error("Registration error:", error);
+
+      // Show error message
+      toast({
+        title: "Registration failed",
+        description: error.response?.data?.message || "An error occurred during registration. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1500); // Simulate network request
+    }
   };
 
   return (
@@ -208,7 +232,27 @@ const Register = () => {
               </Form>
             ) : (
               <Form {...step2Form}>
-                <form onSubmit={step2Form.handleSubmit(onSubmitStep2)} className="space-y-4">
+                <form 
+                  key={`step2-form-${Date.now()}`} 
+                  onSubmit={(e) => {
+                    console.log("Form submitted");
+                    // Validate all fields before submission
+                    step2Form.trigger().then(isValid => {
+                      if (isValid) {
+                        step2Form.handleSubmit(onSubmitStep2)(e);
+                      } else {
+                        console.log("Form validation failed");
+                        // Show toast for validation errors
+                        toast({
+                          title: "Validation Error",
+                          description: "Please check the form for errors",
+                          variant: "destructive",
+                        });
+                      }
+                    });
+                  }} 
+                  className="space-y-4" 
+                  autoComplete="off">
                   <FormField
                     control={step2Form.control}
                     name="username"
@@ -228,7 +272,15 @@ const Register = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>User Role</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select 
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            // Trigger validation after value change
+                            step2Form.trigger("role");
+                          }} 
+                          defaultValue={field.value}
+                          required
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select your role" />
@@ -256,6 +308,18 @@ const Register = () => {
                               type={showPassword ? "text" : "password"} 
                               placeholder="********" 
                               {...field} 
+                              onChange={(e) => {
+                                field.onChange(e);
+                                // Trigger validation for both password fields when password changes
+                                step2Form.trigger("password");
+                                if (step2Form.getValues("confirmPassword")) {
+                                  step2Form.trigger("confirmPassword");
+                                }
+                              }}
+                              autoComplete="new-password"
+                              autoCorrect="off"
+                              autoCapitalize="off"
+                              spellCheck="false"
                             />
                             <Button
                               type="button"
@@ -288,6 +352,15 @@ const Register = () => {
                               type={showConfirmPassword ? "text" : "password"} 
                               placeholder="********" 
                               {...field} 
+                              onChange={(e) => {
+                                field.onChange(e);
+                                // Trigger validation for confirm password field
+                                step2Form.trigger("confirmPassword");
+                              }}
+                              autoComplete="new-password"
+                              autoCorrect="off"
+                              autoCapitalize="off"
+                              spellCheck="false"
                             />
                             <Button
                               type="button"
@@ -312,7 +385,16 @@ const Register = () => {
                     <Button 
                       type="button" 
                       variant="outline" 
-                      onClick={() => setStep(1)}
+                      onClick={() => {
+                        // Reset form fields before going back to step 1 
+                        step2Form.reset({
+                          username: step2Form.getValues("username"),
+                          role: "",
+                          password: "",
+                          confirmPassword: ""
+                        });
+                        setStep(1);
+                      }}
                       className="border-green-600 text-green-700 hover:bg-green-50"
                       disabled={isSubmitting}
                     >

@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { 
   Bell, 
@@ -14,6 +14,7 @@ import {
   Stethoscope,
   Users,
 } from "lucide-react";
+import { authService } from "@/api";
 import {
   SidebarProvider,
   Sidebar,
@@ -73,14 +74,31 @@ const NavLink: React.FC<NavLinkProps> = ({ to, icon, children }) => {
 const DashboardLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  
+  const [userData, setUserData] = useState<any>(null);
+
   // Helper to check if a path is active
   const isActive = (path: string) => {
     return location.pathname.startsWith(path);
   };
 
-  // Determine user role based on current path
+  // Fetch user data on component mount
+  useEffect(() => {
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser) {
+      // If no user is logged in, redirect to login page
+      navigate("/login");
+      return;
+    }
+    setUserData(currentUser);
+  }, [navigate]);
+
+  // Determine user role based on current path or user data
   const getUserRole = () => {
+    if (userData?.role) {
+      return userData.role.toLowerCase();
+    }
+
+    // Fallback to path-based role determination
     if (location.pathname.startsWith("/worker")) {
       return "worker";
     } else if (location.pathname.startsWith("/vet")) {
@@ -92,25 +110,75 @@ const DashboardLayout = () => {
 
   const userRole = getUserRole();
 
-  // Get user info based on role
+  // Check if user is trying to access a restricted area
+  useEffect(() => {
+    // If user data is not loaded yet, skip this check
+    if (!userData) return;
+
+    const role = userData.role?.toLowerCase();
+
+    // Redirect users based on their role if they're trying to access unauthorized areas
+    if (role === 'farmer' && (location.pathname.startsWith('/worker') || location.pathname.startsWith('/vet'))) {
+      toast({
+        title: "Access Restricted",
+        description: "Farmers can only view the farmer dashboard.",
+        variant: "destructive",
+      });
+      navigate('/dashboard');
+    } else if (role === 'worker' && (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/vet'))) {
+      toast({
+        title: "Access Restricted",
+        description: "Workers can only view the worker dashboard.",
+        variant: "destructive",
+      });
+      navigate('/worker');
+    } else if (role === 'vet' && (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/worker'))) {
+      toast({
+        title: "Access Restricted",
+        description: "Veterinarians can only view the vet dashboard.",
+        variant: "destructive",
+      });
+      navigate('/vet');
+    }
+  }, [userData, location.pathname, navigate]);
+
+  // Get user info from actual user data
   const getUserInfo = () => {
+    if (userData) {
+      const fullName = userData.fullName || userData.name || "User";
+      const nameParts = fullName.split(" ");
+      const initials = nameParts.length > 1 
+        ? `${nameParts[0][0]}${nameParts[1][0]}` 
+        : fullName.substring(0, 2);
+
+      return { 
+        name: fullName,
+        initials: initials.toUpperCase()
+      };
+    }
+
+    // Fallback to role-based defaults if no user data
     switch (userRole) {
       case "worker":
-        return { name: "James Worker", initials: "JW" };
+        return { name: "Poultry Worker", initials: "PW" };
       case "vet":
-        return { name: "Dr. Sarah Vet", initials: "SV" };
+        return { name: "Veterinarian", initials: "VT" };
       default:
-        return { name: "John Farmer", initials: "JF" };
+        return { name: "Farm Owner", initials: "FO" };
     }
   };
 
   const userInfo = getUserInfo();
 
   const handleLogout = () => {
+    // Use authService to logout
+    authService.logout();
+
     toast({
       title: "Logged out successfully",
       description: "You have been logged out of your account.",
     });
+
     navigate("/login");
   };
 
@@ -143,7 +211,7 @@ const DashboardLayout = () => {
                       </NavLink>
                     </>
                   )}
-                  
+
                   {userRole === "worker" && (
                     <>
                       <NavLink to="/worker" icon={<Home className="h-5 w-5" />}>
@@ -154,7 +222,7 @@ const DashboardLayout = () => {
                       </NavLink>
                     </>
                   )}
-                  
+
                   {userRole === "vet" && (
                     <>
                       <NavLink to="/vet" icon={<Home className="h-5 w-5" />}>

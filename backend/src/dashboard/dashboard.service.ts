@@ -8,6 +8,7 @@ import { VetWorkerDataDto } from './dto/vet-worker-data.dto';
 import { CreateDailyLogDto } from './dto/create-daily-log.dto';
 import { RecordType } from '../records/schemas/record.schema';
 import { UserRole } from '../users/schemas/user.schema';
+import { MedicineRecord } from '../records/schemas/medicine-record.schema';
 
 @Injectable()
 export class DashboardService {
@@ -25,11 +26,11 @@ export class DashboardService {
    */
   async getVetWorkerData(userId: string, userRole: UserRole): Promise<VetWorkerDataDto> {
     // Get recent treatments (medicine records)
-    const treatments = await this.recordsService.getAllRecords(
+    const treatments = await this.recordsService.findAll(
       userId,
       userRole,
       RecordType.MEDICINE,
-    );
+    ) as unknown as MedicineRecord[];
 
     // Get recent daily logs
     const dailyLogs = await this.getDailyLogs(userId, userRole);

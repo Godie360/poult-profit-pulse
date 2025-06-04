@@ -126,7 +126,7 @@ export class ReportsController {
     // Set headers for file download
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="poultry-report-${dateStr}.xlsx"`,
+      'Content-Disposition': `attachment; filename="DG-Poultry-${dateStr}.xlsx"`,
       'Content-Length': buffer.length,
     });
 

@@ -224,7 +224,7 @@ const Register = () => {
                       <FormItem>
                         <FormLabel>Full Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="John Smith" {...field} />
+                          <Input placeholder="Gabby Dee" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -237,7 +237,7 @@ const Register = () => {
                       <FormItem>
                         <FormLabel>Email Address</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="john@example.com" {...field} />
+                          <Input type="email" placeholder="gabby@example.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -250,7 +250,7 @@ const Register = () => {
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                          <Input type="tel" placeholder="+1 (555) 123-4567" {...field} />
+                          <Input type="tel" placeholder="+255 689 737 689" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

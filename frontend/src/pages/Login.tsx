@@ -169,41 +169,8 @@ const Login = () => {
 
             {/* Demo accounts for testing */}
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <p className="text-xs text-center text-gray-500 mb-2">Demo Accounts</p>
               <div className="grid grid-cols-3 gap-2 text-xs">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs py-1 h-auto"
-                  onClick={() => {
-                    form.setValue("emailOrUsername", "farmer@example.com");
-                    form.setValue("password", "password123");
-                  }}
-                >
-                  Farmer
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs py-1 h-auto"
-                  onClick={() => {
-                    form.setValue("emailOrUsername", "worker@example.com");
-                    form.setValue("password", "password123");
-                  }}
-                >
-                  Worker
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs py-1 h-auto"
-                  onClick={() => {
-                    form.setValue("emailOrUsername", "vet@example.com");
-                    form.setValue("password", "password123");
-                  }}
-                >
-                  Veterinarian
-                </Button>
+
               </div>
             </div>
           </div>

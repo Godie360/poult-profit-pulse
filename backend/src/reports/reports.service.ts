@@ -138,7 +138,7 @@ export class ReportsService {
 
     // Add title and date range
     financialSheet.mergeCells('A1:F1');
-    financialSheet.getCell('A1').value = 'Poult Profit Pulse - Financial Report';
+    financialSheet.getCell('A1').value = 'DG-Poultry - Financial Report';
     financialSheet.getCell('A1').font = { size: 16, bold: true };
     financialSheet.getCell('A1').alignment = { horizontal: 'center' };
 
@@ -183,7 +183,7 @@ export class ReportsService {
 
     // Add title and date range
     productionSheet.mergeCells('A1:F1');
-    productionSheet.getCell('A1').value = 'Poult Profit Pulse - Production Report';
+    productionSheet.getCell('A1').value = 'DG-Poultry - Production Report';
     productionSheet.getCell('A1').font = { size: 16, bold: true };
     productionSheet.getCell('A1').alignment = { horizontal: 'center' };
 

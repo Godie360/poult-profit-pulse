@@ -4,6 +4,7 @@ import pensService from './pensService';
 import recordsService from './recordsService';
 import reportsService from './reportsService';
 import dashboardService from './dashboardService';
+import usersService from './usersService';
 
 export {
   apiClient,
@@ -11,7 +12,8 @@ export {
   pensService,
   recordsService,
   reportsService,
-  dashboardService
+  dashboardService,
+  usersService
 };
 
 // Re-export types
@@ -20,3 +22,4 @@ export * from './pensService';
 export * from './recordsService';
 export * from './reportsService';
 export * from './dashboardService';
+export * from './usersService';

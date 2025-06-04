@@ -1,9 +1,10 @@
-import { Controller, Get, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Request, Res, Header } from '@nestjs/common';
+import { Response } from 'express';
 import { ReportsService } from './reports.service';
 import { ReportFilterDto } from './dto/report-filter.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
+import { RolesGuard, AccessType } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/schemas/user.schema';
 
@@ -22,7 +23,7 @@ export class ReportsController {
     @Request() req,
     @Query() filter: ReportFilterDto,
   ) {
-    return this.reportsService.getFinancialReport(req.user.id, req.user.role, filter);
+    return this.reportsService.getFinancialReport(req.user.id, req.user.role, filter, req.user.isWorker, req.user.isVet);
   }
 
   @Get('production')
@@ -33,7 +34,7 @@ export class ReportsController {
     @Request() req,
     @Query() filter: ReportFilterDto,
   ) {
-    return this.reportsService.getProductionReport(req.user.id, req.user.role, filter);
+    return this.reportsService.getProductionReport(req.user.id, req.user.role, filter, req.user.isWorker, req.user.isVet);
   }
 
   @Get('dashboard')
@@ -44,17 +45,17 @@ export class ReportsController {
     // Get current month data for dashboard
     const currentDate = new Date();
     const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    
+
     const filter: ReportFilterDto = {
       startDate: firstDayOfMonth.toISOString().split('T')[0],
       endDate: currentDate.toISOString().split('T')[0],
     };
-    
+
     const [financialReport, productionReport] = await Promise.all([
-      this.reportsService.getFinancialReport(req.user.id, req.user.role, filter),
-      this.reportsService.getProductionReport(req.user.id, req.user.role, filter),
+      this.reportsService.getFinancialReport(req.user.id, req.user.role, filter, req.user.isWorker, req.user.isVet),
+      this.reportsService.getProductionReport(req.user.id, req.user.role, filter, req.user.isWorker, req.user.isVet),
     ]);
-    
+
     return {
       financialSummary: financialReport.financialSummary,
       productionSummary: productionReport.productionSummary,
@@ -67,8 +68,8 @@ export class ReportsController {
 
   @Get('export')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.FARMER)
-  @ApiOperation({ summary: 'Export reports data' })
+  @Roles(AccessType.FARMER)
+  @ApiOperation({ summary: 'Export reports data as JSON' })
   @ApiResponse({ status: 200, description: 'Return data for export' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
@@ -77,10 +78,10 @@ export class ReportsController {
     @Query() filter: ReportFilterDto,
   ) {
     const [financialReport, productionReport] = await Promise.all([
-      this.reportsService.getFinancialReport(req.user.id, req.user.role, filter),
-      this.reportsService.getProductionReport(req.user.id, req.user.role, filter),
+      this.reportsService.getFinancialReport(req.user.id, req.user.role, filter, req.user.isWorker, req.user.isVet),
+      this.reportsService.getProductionReport(req.user.id, req.user.role, filter, req.user.isWorker, req.user.isVet),
     ]);
-    
+
     return {
       financialReport,
       productionReport,
@@ -91,5 +92,45 @@ export class ReportsController {
         role: req.user.role,
       },
     };
+  }
+
+  @Get('download')
+  @UseGuards(RolesGuard)
+  @Roles(AccessType.FARMER)
+  @ApiOperation({ summary: 'Download reports as Excel file' })
+  @ApiResponse({ status: 200, description: 'Returns Excel file for download' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async downloadReports(
+    @Request() req,
+    @Query() filter: ReportFilterDto,
+    @Res() res: Response,
+  ) {
+    // Get report data
+    const [financialReport, productionReport] = await Promise.all([
+      this.reportsService.getFinancialReport(req.user.id, req.user.role, filter, req.user.isWorker, req.user.isVet),
+      this.reportsService.getProductionReport(req.user.id, req.user.role, filter, req.user.isWorker, req.user.isVet),
+    ]);
+
+    // Generate Excel file
+    const buffer = await this.reportsService.generateExcelReport(
+      financialReport,
+      productionReport,
+      req.user.username || req.user.email
+    );
+
+    // Format date for filename
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    // Set headers for file download
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="poultry-report-${dateStr}.xlsx"`,
+      'Content-Length': buffer.length,
+    });
+
+    // Send the file
+    res.end(buffer);
   }
 }

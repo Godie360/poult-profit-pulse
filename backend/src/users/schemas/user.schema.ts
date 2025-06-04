@@ -4,8 +4,6 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export enum UserRole {
   FARMER = 'farmer',
-  WORKER = 'worker',
-  VET = 'vet',
 }
 
 @Schema({ timestamps: true })
@@ -29,6 +27,26 @@ export class User extends Document {
   @ApiProperty({ enum: UserRole, example: UserRole.FARMER, description: 'User role' })
   @Prop({ required: true, enum: UserRole, default: UserRole.FARMER })
   role: UserRole;
+
+  @ApiProperty({ example: 'ABC123', description: 'Special code for vet access' })
+  @Prop()
+  vetCode: string;
+
+  @ApiProperty({ example: 'XYZ789', description: 'Special code for worker access' })
+  @Prop()
+  workerCode: string;
+
+  @ApiProperty({ example: false, description: 'Whether user has vet access' })
+  @Prop({ default: false })
+  isVet: boolean;
+
+  @ApiProperty({ example: false, description: 'Whether user has worker access' })
+  @Prop({ default: false })
+  isWorker: boolean;
+
+  @ApiProperty({ example: null, description: 'ID of the farmer who registered this user' })
+  @Prop()
+  registeredBy: string;
 
   @Prop({ required: true, select: false })
   password: string;

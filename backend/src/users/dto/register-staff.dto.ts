@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsString, MinLength, Matches, IsOptional, IsBoolean } from 'class-validator';
-import { UserRole } from '../schemas/user.schema';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional, IsBoolean } from 'class-validator';
 
-export class CreateUserDto {
+export class RegisterStaffDto {
   @ApiProperty({ example: 'John Smith', description: 'User full name' })
   @IsNotEmpty({ message: 'Full name is required' })
   @IsString({ message: 'Full name must be a string' })
@@ -26,9 +25,15 @@ export class CreateUserDto {
   @MinLength(3, { message: 'Username must be at least 3 characters' })
   username: string;
 
-  @ApiProperty({ enum: UserRole, example: UserRole.FARMER, description: 'User role' })
-  @IsEnum(UserRole, { message: 'Role must be farmer' })
-  role: UserRole = UserRole.FARMER;
+  @ApiProperty({ example: true, description: 'Whether user has vet access' })
+  @IsOptional()
+  @IsBoolean({ message: 'isVet must be a boolean' })
+  isVet?: boolean;
+
+  @ApiProperty({ example: true, description: 'Whether user has worker access' })
+  @IsOptional()
+  @IsBoolean({ message: 'isWorker must be a boolean' })
+  isWorker?: boolean;
 
   @ApiProperty({ example: 'ABC123', description: 'Special code for vet access' })
   @IsOptional()
@@ -40,28 +45,9 @@ export class CreateUserDto {
   @IsString({ message: 'Worker code must be a string' })
   workerCode?: string;
 
-  @ApiProperty({ example: '60d0fe4f5311236168a109ca', description: 'ID of the farmer who registered this user' })
-  @IsOptional()
-  @IsString({ message: 'RegisteredBy must be a string' })
-  registeredBy?: string;
-
-  @ApiProperty({ example: false, description: 'Whether user has worker access' })
-  @IsOptional()
-  @IsBoolean({ message: 'isWorker must be a boolean' })
-  isWorker?: boolean;
-
-  @ApiProperty({ example: false, description: 'Whether user has vet access' })
-  @IsOptional()
-  @IsBoolean({ message: 'isVet must be a boolean' })
-  isVet?: boolean;
-
   @ApiProperty({ example: 'Password123!', description: 'User password' })
   @IsNotEmpty({ message: 'Password is required' })
   @IsString({ message: 'Password must be a string' })
   @MinLength(8, { message: 'Password must be at least 8 characters' })
-  // Temporarily removed regex validation for testing
-  // @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/, {
-  //   message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number',
-  // })
   password: string;
 }

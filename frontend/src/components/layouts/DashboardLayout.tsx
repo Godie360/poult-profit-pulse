@@ -94,8 +94,14 @@ const DashboardLayout = () => {
 
   // Determine user role based on current path or user data
   const getUserRole = () => {
-    if (userData?.role) {
-      return userData.role.toLowerCase();
+    if (userData) {
+      if (userData.isWorker) {
+        return "worker";
+      } else if (userData.isVet) {
+        return "vet";
+      } else {
+        return "farmer";
+      }
     }
 
     // Fallback to path-based role determination
@@ -115,24 +121,25 @@ const DashboardLayout = () => {
     // If user data is not loaded yet, skip this check
     if (!userData) return;
 
-    const role = userData.role?.toLowerCase();
+    const isWorker = userData.isWorker;
+    const isVet = userData.isVet;
 
     // Redirect users based on their role if they're trying to access unauthorized areas
-    if (role === 'farmer' && (location.pathname.startsWith('/worker') || location.pathname.startsWith('/vet'))) {
+    if (!isWorker && !isVet && (location.pathname.startsWith('/worker') || location.pathname.startsWith('/vet'))) {
       toast({
         title: "Access Restricted",
         description: "Farmers can only view the farmer dashboard.",
         variant: "destructive",
       });
       navigate('/dashboard');
-    } else if (role === 'worker' && (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/vet'))) {
+    } else if (isWorker && (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/vet'))) {
       toast({
         title: "Access Restricted",
         description: "Workers can only view the worker dashboard.",
         variant: "destructive",
       });
       navigate('/worker');
-    } else if (role === 'vet' && (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/worker'))) {
+    } else if (isVet && (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/worker'))) {
       toast({
         title: "Access Restricted",
         description: "Veterinarians can only view the vet dashboard.",
@@ -220,6 +227,9 @@ const DashboardLayout = () => {
                       <NavLink to="/dashboard/pens" icon={<Egg className="h-5 w-5" />}>
                         View Pens
                       </NavLink>
+                      <NavLink to="/worker/vets" icon={<Stethoscope className="h-5 w-5" />}>
+                        Veterinarians
+                      </NavLink>
                     </>
                   )}
 
@@ -241,12 +251,7 @@ const DashboardLayout = () => {
               <SidebarGroupLabel>User</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <NavLink to="/profile" icon={<User className="h-5 w-5" />}>
-                    Profile
-                  </NavLink>
-                  <NavLink to="/settings" icon={<Settings className="h-5 w-5" />}>
-                    Settings
-                  </NavLink>
+                  
                   {userRole === "farmer" && (
                     <NavLink to="/team" icon={<Users className="h-5 w-5" />}>
                       Team Members

@@ -5,6 +5,7 @@ import { RecordsController } from './records.controller';
 import { Record, RecordSchema } from './schemas/record.schema';
 import { FeedRecord, FeedRecordSchema } from './schemas/feed-record.schema';
 import { MedicineRecord, MedicineRecordSchema } from './schemas/medicine-record.schema';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { MedicineRecord, MedicineRecordSchema } from './schemas/medicine-record.
         ],
       },
     ]),
+    UsersModule,
   ],
   controllers: [RecordsController],
   providers: [RecordsService],

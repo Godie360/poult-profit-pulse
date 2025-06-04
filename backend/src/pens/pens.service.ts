@@ -20,36 +20,64 @@ export class PensService {
     return newPen.save();
   }
 
-  async findAll(userId: string, userRole: UserRole): Promise<Pen[]> {
-    // If user is a farmer, return only their pens
-    // If user is a worker or vet, return all pens
-    const query = userRole === UserRole.FARMER ? { owner: userId } : {};
+  async findAll(userId: string, userRole: UserRole, isWorker: boolean = false, isVet: boolean = false, registeredBy?: string): Promise<Pen[]> {
+    // If user is a farmer (and not a worker or vet), return only their pens
+    // If user is a worker or vet, return pens owned by the farmer who registered them
+    let query = {};
+
+    if (!isWorker && !isVet) {
+      // Farmer sees their own pens
+      query = { owner: userId };
+    } else if (registeredBy) {
+      // Worker or vet sees pens owned by the farmer who registered them
+      query = { owner: registeredBy };
+    }
+
     return this.penModel.find(query).exec();
   }
 
-  async findOne(id: string, userId: string, userRole: UserRole): Promise<Pen> {
+  async findOne(id: string, userId: string, userRole: UserRole, isWorker: boolean = false, isVet: boolean = false, registeredBy?: string): Promise<Pen> {
     const pen = await this.penModel.findById(id).exec();
-    
+
     if (!pen) {
       throw new NotFoundException(`Pen with ID ${id} not found`);
     }
-    
+
     // Check if user has access to this pen
-    if (userRole === UserRole.FARMER && pen.owner.toString() !== userId) {
+    // Farmers can only access their own pens
+    // Workers and vets can only access pens owned by the farmer who registered them
+    if (!isWorker && !isVet) {
+      // Farmer access check
+      if (pen.owner.toString() !== userId) {
+        throw new ForbiddenException('You do not have access to this pen');
+      }
+    } else if (registeredBy) {
+      // Worker or vet access check
+      if (pen.owner.toString() !== registeredBy) {
+        throw new ForbiddenException('You do not have access to this pen');
+      }
+    } else {
+      // Worker or vet without registeredBy cannot access any pens
       throw new ForbiddenException('You do not have access to this pen');
     }
-    
+
     return pen;
   }
 
-  async update(id: string, updatePenDto: UpdatePenDto, userId: string, userRole: UserRole): Promise<Pen> {
-    const pen = await this.findOne(id, userId, userRole);
-    
-    // Only allow updates to pens owned by the user if they are a farmer
-    if (userRole === UserRole.FARMER && pen.owner.toString() !== userId) {
+  async update(id: string, updatePenDto: UpdatePenDto, userId: string, userRole: UserRole, isWorker: boolean = false, isVet: boolean = false, registeredBy?: string): Promise<Pen> {
+    const pen = await this.findOne(id, userId, userRole, isWorker, isVet, registeredBy);
+
+    // Only farmers can update pens, and only their own pens
+    // Workers and vets cannot update pens, even if they are also farmers
+    if (isWorker || isVet) {
+      throw new ForbiddenException('Workers and veterinarians cannot update pens');
+    }
+
+    // Farmers can only update their own pens
+    if (pen.owner.toString() !== userId) {
       throw new ForbiddenException('You do not have permission to update this pen');
     }
-    
+
     return this.penModel.findByIdAndUpdate(
       id,
       updatePenDto,
@@ -57,28 +85,42 @@ export class PensService {
     ).exec();
   }
 
-  async remove(id: string, userId: string, userRole: UserRole): Promise<void> {
-    const pen = await this.findOne(id, userId, userRole);
-    
-    // Only allow deletion of pens owned by the user if they are a farmer
-    if (userRole === UserRole.FARMER && pen.owner.toString() !== userId) {
+  async remove(id: string, userId: string, userRole: UserRole, isWorker: boolean = false, isVet: boolean = false, registeredBy?: string): Promise<void> {
+    const pen = await this.findOne(id, userId, userRole, isWorker, isVet, registeredBy);
+
+    // Only farmers can delete pens, and only their own pens
+    // Workers and vets cannot delete pens, even if they are also farmers
+    if (isWorker || isVet) {
+      throw new ForbiddenException('Workers and veterinarians cannot delete pens');
+    }
+
+    // Farmers can only delete their own pens
+    if (pen.owner.toString() !== userId) {
       throw new ForbiddenException('You do not have permission to delete this pen');
     }
-    
+
     await this.penModel.findByIdAndDelete(id).exec();
   }
 
-  async getPenStats(userId: string, userRole: UserRole): Promise<any> {
-    const query = userRole === UserRole.FARMER ? { owner: userId } : {};
-    
+  async getPenStats(userId: string, userRole: UserRole, isWorker: boolean = false, isVet: boolean = false, registeredBy?: string): Promise<any> {
+    let query = {};
+
+    if (!isWorker && !isVet) {
+      // Farmer sees their own pens
+      query = { owner: userId };
+    } else if (registeredBy) {
+      // Worker or vet sees pens owned by the farmer who registered them
+      query = { owner: registeredBy };
+    }
+
     const pens = await this.penModel.find(query).exec();
-    
+
     const totalBirds = pens.reduce((sum, pen) => sum + pen.birdCount, 0);
     const totalEggs = pens.reduce((sum, pen) => sum + pen.dailyEggAvg, 0);
     const avgMortality = pens.length > 0 
       ? pens.reduce((sum, pen) => sum + pen.mortality, 0) / pens.length 
       : 0;
-    
+
     return {
       totalPens: pens.length,
       totalBirds,

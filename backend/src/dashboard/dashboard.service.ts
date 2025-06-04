@@ -3,11 +3,13 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { RecordsService } from '../records/records.service';
 import { PensService } from '../pens/pens.service';
+import { UsersService } from '../users/users.service';
 import { DailyLog } from './schemas/daily-log.schema';
 import { VetWorkerDataDto } from './dto/vet-worker-data.dto';
 import { CreateDailyLogDto } from './dto/create-daily-log.dto';
 import { RecordType } from '../records/schemas/record.schema';
 import { UserRole } from '../users/schemas/user.schema';
+import { AccessType } from '../auth/guards/roles.guard';
 import { MedicineRecord } from '../records/schemas/medicine-record.schema';
 
 @Injectable()
@@ -16,6 +18,7 @@ export class DashboardService {
     @InjectModel(DailyLog.name) private readonly dailyLogModel: Model<DailyLog>,
     private readonly recordsService: RecordsService,
     private readonly pensService: PensService,
+    private readonly usersService: UsersService,
   ) {}
 
   /**
@@ -49,8 +52,24 @@ export class DashboardService {
    * @returns Array of daily logs with pen information
    */
   private async getDailyLogs(userId: string, userRole: UserRole): Promise<any[]> {
-    // Build query based on user role
-    const query: any = userRole === UserRole.FARMER ? {} : { owner: userId };
+    let query: any;
+
+    if (userRole === UserRole.FARMER) {
+      // For farmers, get logs from their team members and themselves
+      const teamMembers = await this.usersService.findAll(userId);
+      const teamMemberIds = teamMembers.map(member => member._id);
+
+      // Include logs from the farmer and their team members
+      query = { 
+        $or: [
+          { owner: userId }, // Logs from the farmer
+          { owner: { $in: teamMemberIds } } // Logs from team members
+        ]
+      };
+    } else {
+      // For workers and vets, only show their own logs
+      query = { owner: userId };
+    }
 
     // Get recent daily logs
     const logs = await this.dailyLogModel
@@ -82,9 +101,11 @@ export class DashboardService {
    * @param userId The ID of the user creating the log
    * @returns The created daily log
    */
-  async createDailyLog(createDailyLogDto: CreateDailyLogDto, userId: string): Promise<DailyLog> {
+  async createDailyLog(createDailyLogDto: CreateDailyLogDto, userId: string, registeredBy?: string): Promise<DailyLog> {
     // Verify the pen exists
-    await this.pensService.findOne(createDailyLogDto.penId, userId, UserRole.WORKER);
+    // If registeredBy is provided, this is a worker or vet, so pass isWorker=true
+    const isWorker = !!registeredBy;
+    await this.pensService.findOne(createDailyLogDto.penId, userId, UserRole.FARMER, isWorker, false, registeredBy);
 
     // Create new daily log
     const newLog = new this.dailyLogModel({
@@ -103,11 +124,31 @@ export class DashboardService {
   /**
    * Get daily logs for a specific user
    * @param userId The ID of the user
+   * @param userRole The role of the user
    * @returns Array of daily logs
    */
-  async getUserDailyLogs(userId: string): Promise<DailyLog[]> {
+  async getUserDailyLogs(userId: string, userRole: UserRole): Promise<DailyLog[]> {
+    let query: any;
+
+    if (userRole === UserRole.FARMER) {
+      // For farmers, get logs from their team members and themselves
+      const teamMembers = await this.usersService.findAll(userId);
+      const teamMemberIds = teamMembers.map(member => member._id);
+
+      // Include logs from the farmer and their team members
+      query = { 
+        $or: [
+          { owner: userId }, // Logs from the farmer
+          { owner: { $in: teamMemberIds } } // Logs from team members
+        ]
+      };
+    } else {
+      // For workers and vets, only show their own logs
+      query = { owner: userId };
+    }
+
     return this.dailyLogModel
-      .find({ owner: userId })
+      .find(query)
       .sort({ date: -1 })
       .populate('pen', 'name')
       .exec();

@@ -5,6 +5,7 @@ import { DashboardController } from './dashboard.controller';
 import { DailyLog, DailyLogSchema } from './schemas/daily-log.schema';
 import { RecordsModule } from '../records/records.module';
 import { PensModule } from '../pens/pens.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { PensModule } from '../pens/pens.module';
     ]),
     RecordsModule,
     PensModule,
+    UsersModule,
   ],
   controllers: [DashboardController],
   providers: [DashboardService],

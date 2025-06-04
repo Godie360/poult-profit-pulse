@@ -34,17 +34,32 @@ const registerSchemaStep1 = z.object({
 
 const registerSchemaStep2 = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
-  role: z.string().min(1, "Role is required"),
+  role: z.string().min(1, "Access type is required"),
+  vetCode: z.string().optional(),
+  workerCode: z.string().optional(),
   password: z.string()
     .min(8, "Password must be at least 8 characters"),
     // Temporarily removed regex validation for testing
     // .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/, 
     //   "Password must contain at least one uppercase letter, one lowercase letter, and one number, and can only contain letters and numbers"),
   confirmPassword: z.string(),
-}).refine(data => data.password === data.confirmPassword, {
+})
+.refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
-});
+})
+.refine(
+  data => !(data.role === "worker" && (!data.workerCode || data.workerCode.trim() === "")), {
+    message: "Worker access code is required for worker access",
+    path: ["workerCode"],
+  }
+)
+.refine(
+  data => !(data.role === "vet" && (!data.vetCode || data.vetCode.trim() === "")), {
+    message: "Veterinarian access code is required for veterinarian access",
+    path: ["vetCode"],
+  }
+);
 
 type RegisterFormStep1 = z.infer<typeof registerSchemaStep1>;
 type RegisterFormStep2 = z.infer<typeof registerSchemaStep2>;
@@ -71,6 +86,8 @@ const Register = () => {
     defaultValues: {
       username: "",
       role: "",
+      vetCode: "",
+      workerCode: "",
       password: "",
       confirmPassword: "",
     },
@@ -95,9 +112,19 @@ const Register = () => {
     try {
       // Combine data from both steps and remove confirmPassword field
       const { confirmPassword, ...dataWithoutConfirmPassword } = data;
+
+      // Set isWorker and isVet flags based on role
+      const isWorker = data.role === "worker";
+      const isVet = data.role === "vet";
+
       const fullData = {
         ...step1Data,
-        ...dataWithoutConfirmPassword
+        ...dataWithoutConfirmPassword,
+        // Always set role to "farmer" as per new backend design
+        role: "farmer",
+        // Add worker/vet flags if applicable
+        isWorker,
+        isVet
       };
 
       console.log("Submitting registration data:", fullData);
@@ -117,6 +144,8 @@ const Register = () => {
       step2Form.reset({
         username: "",
         role: "",
+        vetCode: "",
+        workerCode: "",
         password: "",
         confirmPassword: "",
       });
@@ -127,13 +156,13 @@ const Register = () => {
       // Show success message
       toast({
         title: "Registration successful!",
-        description: "You can now use the system with your new account.",
+        description: `Welcome to DG Poultry! You've been registered as a ${isWorker ? 'worker' : isVet ? 'veterinarian' : 'farm owner'}.`,
       });
 
       // Redirect based on role
-      if (response.user.role === "worker") {
+      if (response.user.isWorker) {
         navigate("/worker");
-      } else if (response.user.role === "vet") {
+      } else if (response.user.isVet) {
         navigate("/vet");
       } else {
         navigate("/dashboard");
@@ -164,7 +193,12 @@ const Register = () => {
       <div className="flex-1 flex items-center justify-center py-10 px-4 md:px-8">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-lg shadow-md p-6 md:p-8">
-            <h1 className="text-2xl font-bold text-green-800 mb-6 text-center">Create an Account</h1>
+            <h1 className="text-2xl font-bold text-green-800 mb-4 text-center">Create an Account</h1>
+
+            <div className="mb-6 text-sm text-gray-600 text-center">
+              <p>Register as a farm owner, poultry worker, or veterinarian.</p>
+              <p className="text-xs mt-1">Workers and veterinarians need an access code from a farm owner.</p>
+            </div>
 
             {/* Progress bar */}
             <div className="relative mb-8">
@@ -271,7 +305,7 @@ const Register = () => {
                     name="role"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>User Role</FormLabel>
+                        <FormLabel>Access Type</FormLabel>
                         <Select 
                           onValueChange={(value) => {
                             field.onChange(value);
@@ -283,19 +317,69 @@ const Register = () => {
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select your role" />
+                              <SelectValue placeholder="Select your access type" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="farmer">Farmer (Owner)</SelectItem>
-                            <SelectItem value="worker">Poultry Worker</SelectItem>
-                            <SelectItem value="vet">Veterinarian</SelectItem>
+                            <SelectItem value="farmer">Farm Owner (Full Access)</SelectItem>
+                            <SelectItem value="worker">Poultry Worker (Limited Access)</SelectItem>
+                            <SelectItem value="vet">Veterinarian (Limited Access)</SelectItem>
                           </SelectContent>
                         </Select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Select "Farm Owner" if you own the farm. Select "Poultry Worker" or "Veterinarian" if you were invited by a farm owner.
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                  {/* Conditional fields based on access type */}
+                  {step2Form.watch("role") === "worker" && (
+                    <FormField
+                      control={step2Form.control}
+                      name="workerCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Worker Access Code <span className="text-red-500">*</span></FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Enter the code provided by your farm owner" 
+                              {...field} 
+                              required 
+                            />
+                          </FormControl>
+                          <p className="text-xs text-gray-500 mt-1">
+                            This code is required and must be provided by a farm owner who has registered you as a worker.
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {step2Form.watch("role") === "vet" && (
+                    <FormField
+                      control={step2Form.control}
+                      name="vetCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Veterinarian Access Code <span className="text-red-500">*</span></FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Enter the code provided by your farm owner" 
+                              {...field} 
+                              required 
+                            />
+                          </FormControl>
+                          <p className="text-xs text-gray-500 mt-1">
+                            This code is required and must be provided by a farm owner who has registered you as a veterinarian.
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
                   <FormField
                     control={step2Form.control}
                     name="password"
@@ -310,7 +394,9 @@ const Register = () => {
                               {...field} 
                               onChange={(e) => {
                                 field.onChange(e);
-                                // Trigger validation for both password fields when password changes
+                              }}
+                              onBlur={() => {
+                                // Trigger validation for both password fields when focus leaves the field
                                 step2Form.trigger("password");
                                 if (step2Form.getValues("confirmPassword")) {
                                   step2Form.trigger("confirmPassword");
@@ -354,7 +440,9 @@ const Register = () => {
                               {...field} 
                               onChange={(e) => {
                                 field.onChange(e);
-                                // Trigger validation for confirm password field
+                              }}
+                              onBlur={() => {
+                                // Trigger validation for confirm password field when focus leaves the field
                                 step2Form.trigger("confirmPassword");
                               }}
                               autoComplete="new-password"
@@ -390,6 +478,8 @@ const Register = () => {
                         step2Form.reset({
                           username: step2Form.getValues("username"),
                           role: "",
+                          vetCode: "",
+                          workerCode: "",
                           password: "",
                           confirmPassword: ""
                         });

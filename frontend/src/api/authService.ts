@@ -11,6 +11,10 @@ export interface RegisterRequest {
   phone: string;
   username: string;
   role: string;
+  isWorker?: boolean;
+  isVet?: boolean;
+  vetCode?: string;
+  workerCode?: string;
   password: string;
 }
 
@@ -23,6 +27,8 @@ export interface AuthResponse {
     phone: string;
     username: string;
     role: string;
+    isWorker?: boolean;
+    isVet?: boolean;
     lastLogin: string;
     createdAt: string;
     updatedAt: string;
@@ -32,32 +38,32 @@ export interface AuthResponse {
 const authService = {
   login: async (data: LoginRequest): Promise<AuthResponse> => {
     const response = await apiClient.post<AuthResponse>('/auth/login', data);
-    
+
     // Store token and user info in localStorage
     localStorage.setItem('dgpoultry_user', JSON.stringify({
       ...response.data.user,
       token: response.data.accessToken
     }));
-    
+
     return response.data;
   },
-  
+
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
     const response = await apiClient.post<AuthResponse>('/auth/register', data);
-    
+
     // Store token and user info in localStorage
     localStorage.setItem('dgpoultry_user', JSON.stringify({
       ...response.data.user,
       token: response.data.accessToken
     }));
-    
+
     return response.data;
   },
-  
+
   logout: () => {
     localStorage.removeItem('dgpoultry_user');
   },
-  
+
   getCurrentUser: () => {
     const userInfo = localStorage.getItem('dgpoultry_user');
     if (userInfo) {
@@ -70,7 +76,7 @@ const authService = {
     }
     return null;
   },
-  
+
   isAuthenticated: () => {
     return localStorage.getItem('dgpoultry_user') !== null;
   }

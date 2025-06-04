@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { User } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -47,8 +47,9 @@ export class UsersService {
     return new UserResponseDto(typedUserObject);
   }
 
-  async findAll(): Promise<UserResponseDto[]> {
-    const users = await this.userModel.find().exec();
+  async findAll(userId: string): Promise<UserResponseDto[]> {
+    // Find users who were registered by the current user (team members)
+    const users = await this.userModel.find({ registeredBy: userId }).exec();
     return users.map(user => {
       const userObject = user.toObject();
 

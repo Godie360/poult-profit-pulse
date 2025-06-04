@@ -5,4 +5,7 @@ export interface JwtPayload {
   email: string;
   username: string;
   role: UserRole;
+  isWorker?: boolean;
+  isVet?: boolean;
+  registeredBy?: string;
 }

@@ -48,11 +48,10 @@ const Login = () => {
 
       // Determine redirect path based on user role
       let redirectPath = "/dashboard";
-      const role = response.user.role;
 
-      if (role === 'worker') {
+      if (response.user.isWorker) {
         redirectPath = "/worker";
-      } else if (role === 'vet') {
+      } else if (response.user.isVet) {
         redirectPath = "/vet";
       }
 

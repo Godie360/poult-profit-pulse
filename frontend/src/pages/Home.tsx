@@ -15,16 +15,24 @@ const Home = () => {
     if (userInfo) {
       const user = JSON.parse(userInfo);
       setIsLoggedIn(true);
-      setUserRole(user.role);
+
+      // Determine user role based on flags
+      if (user.isWorker) {
+        setUserRole("worker");
+      } else if (user.isVet) {
+        setUserRole("vet");
+      } else {
+        setUserRole("farmer");
+      }
     }
   }, []);
 
   const handleGetStarted = () => {
     if (isLoggedIn) {
       // Redirect to appropriate dashboard based on role
-      if (userRole === "Poultry Worker") {
+      if (userRole === "worker") {
         navigate("/worker");
-      } else if (userRole === "Veterinarian") {
+      } else if (userRole === "vet") {
         navigate("/vet");
       } else {
         navigate("/dashboard");
@@ -37,9 +45,9 @@ const Home = () => {
   const handleLogin = () => {
     if (isLoggedIn) {
       // Redirect to appropriate dashboard based on role
-      if (userRole === "Poultry Worker") {
+      if (userRole === "worker") {
         navigate("/worker");
-      } else if (userRole === "Veterinarian") {
+      } else if (userRole === "vet") {
         navigate("/vet");
       } else {
         navigate("/dashboard");

@@ -1,7 +1,8 @@
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
+import { AccessCodesService } from '../users/access-codes.service';
 import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
@@ -13,14 +14,37 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly accessCodesService: AccessCodesService,
   ) {}
 
   async register(createUserDto: CreateUserDto): Promise<AuthResponseDto> {
-    const user = await this.usersService.create(createUserDto);
-    const token = this.generateToken(user);
+    // Ensure role is set to FARMER for all registrations through auth service
+    createUserDto.role = 'farmer' as any;
+
+    // Extract vetCode and workerCode if present
+    const { vetCode, workerCode, ...userData } = createUserDto as any;
+
+    // Create the user first
+    const user = await this.usersService.create(userData);
+
+    // If a code was provided, validate and use it
+    if (vetCode) {
+      await this.accessCodesService.useCode(vetCode, user._id);
+    }
+
+    if (workerCode) {
+      await this.accessCodesService.useCode(workerCode, user._id);
+    }
+
+    // Get the updated user with the correct roles
+    const updatedUser = await this.usersService.findOne(user._id);
+
+    // Generate token with the updated user info
+    const token = this.generateToken(updatedUser);
+
     return new AuthResponseDto({
       accessToken: token,
-      user,
+      user: updatedUser,
     });
   }
 
@@ -70,6 +94,9 @@ export class AuthService {
       email: user.email,
       username: user.username,
       role: user.role,
+      isWorker: user.isWorker || false,
+      isVet: user.isVet || false,
+      registeredBy: user.registeredBy || undefined,
     };
 
     return this.jwtService.sign(payload);

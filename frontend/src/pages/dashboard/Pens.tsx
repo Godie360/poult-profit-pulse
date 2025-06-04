@@ -2,9 +2,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Loader2 } from "lucide-react";
+import { PlusCircle, Loader2, Edit, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { pensService, Pen, CreatePenRequest } from "@/api";
+import { pensService, Pen, CreatePenRequest, UpdatePenRequest } from "@/api";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +46,8 @@ const Pens = () => {
   const [pens, setPens] = useState<Pen[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddPenDialogOpen, setIsAddPenDialogOpen] = useState(false);
+  const [isEditPenDialogOpen, setIsEditPenDialogOpen] = useState(false);
+  const [selectedPen, setSelectedPen] = useState<Pen | null>(null);
 
   // Fetch pens from the API
   useEffect(() => {
@@ -79,11 +81,37 @@ const Pens = () => {
     },
   });
 
-  const handlePenClick = (penId: string) => {
-    toast({
-      title: "Pen selected",
-      description: `You've selected Pen with ID ${penId}. Details view will be implemented soon.`,
-    });
+  const handlePenClick = (pen: Pen) => {
+    setSelectedPen(pen);
+    setIsEditPenDialogOpen(true);
+  };
+
+  const handleEditPen = (e: React.MouseEvent, pen: Pen) => {
+    e.stopPropagation(); // Prevent the card click event from firing
+    setSelectedPen(pen);
+    setIsEditPenDialogOpen(true);
+  };
+
+  const handleDeletePen = async (e: React.MouseEvent, penId: string) => {
+    e.stopPropagation(); // Prevent the card click event from firing
+
+    if (window.confirm("Are you sure you want to delete this pen?")) {
+      try {
+        await pensService.deletePen(penId);
+        setPens(pens.filter(pen => pen._id !== penId));
+        toast({
+          title: "Pen deleted",
+          description: "The pen has been successfully deleted.",
+        });
+      } catch (error) {
+        console.error('Error deleting pen:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to delete pen. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    }
   };
 
   const onSubmit = async (data: PenForm) => {
@@ -166,16 +194,34 @@ const Pens = () => {
             <Card 
               key={pen._id} 
               className="hover:bg-green-50 transition-colors cursor-pointer"
-              onClick={() => handlePenClick(pen._id)}
+              onClick={() => handlePenClick(pen)}
             >
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-center">
                   <CardTitle>{pen.name}</CardTitle>
-                  <span className={`text-sm py-1 px-2 rounded ${
-                    pen.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {pen.status === 'active' ? 'Active' : 'Inactive'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm py-1 px-2 rounded ${
+                      pen.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {pen.status === 'active' ? 'Active' : 'Inactive'}
+                    </span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-gray-500 hover:text-green-600"
+                      onClick={(e) => handleEditPen(e, pen)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-gray-500 hover:text-red-600"
+                      onClick={(e) => handleDeletePen(e, pen._id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -211,6 +257,7 @@ const Pens = () => {
         )}
       </div>
 
+      {/* Add Pen Dialog */}
       <Dialog open={isAddPenDialogOpen} onOpenChange={setIsAddPenDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -294,6 +341,154 @@ const Pens = () => {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Pen Dialog */}
+      <Dialog open={isEditPenDialogOpen} onOpenChange={setIsEditPenDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Pen</DialogTitle>
+            <DialogDescription>
+              Update the details of this poultry pen.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedPen && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Name</label>
+                  <Input 
+                    value={selectedPen.name} 
+                    onChange={(e) => setSelectedPen({...selectedPen, name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Type</label>
+                  <Select 
+                    value={selectedPen.type} 
+                    onValueChange={(value) => setSelectedPen({...selectedPen, type: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select pen type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Layers">Layers</SelectItem>
+                      <SelectItem value="Broilers">Broilers</SelectItem>
+                      <SelectItem value="Chicks">Chicks</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Bird Count</label>
+                  <Input 
+                    type="number" 
+                    min="1" 
+                    value={selectedPen.birdCount} 
+                    onChange={(e) => setSelectedPen({...selectedPen, birdCount: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Age (weeks)</label>
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    value={selectedPen.age} 
+                    onChange={(e) => setSelectedPen({...selectedPen, age: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Daily Egg Average</label>
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    value={selectedPen.dailyEggAvg} 
+                    onChange={(e) => setSelectedPen({...selectedPen, dailyEggAvg: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Mortality Rate (%)</label>
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    step="0.1" 
+                    value={selectedPen.mortality} 
+                    onChange={(e) => setSelectedPen({...selectedPen, mortality: parseFloat(e.target.value)})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Status</label>
+                  <Select 
+                    value={selectedPen.status} 
+                    onValueChange={(value) => setSelectedPen({...selectedPen, status: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsEditPenDialogOpen(false);
+                    setSelectedPen(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="button" 
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={async () => {
+                    try {
+                      // Create update request object
+                      const updateRequest: UpdatePenRequest = {
+                        name: selectedPen.name,
+                        birdCount: selectedPen.birdCount,
+                        type: selectedPen.type,
+                        age: selectedPen.age,
+                        dailyEggAvg: selectedPen.dailyEggAvg,
+                        mortality: selectedPen.mortality,
+                        status: selectedPen.status
+                      };
+
+                      // Make API call to update the pen
+                      const updatedPen = await pensService.updatePen(selectedPen._id, updateRequest);
+
+                      // Update pens list with the updated pen
+                      setPens(pens.map(pen => pen._id === updatedPen._id ? updatedPen : pen));
+
+                      toast({
+                        title: "Pen updated successfully",
+                        description: `Pen ${selectedPen.name} has been updated.`,
+                      });
+
+                      setIsEditPenDialogOpen(false);
+                      setSelectedPen(null);
+                    } catch (error) {
+                      console.error('Error updating pen:', error);
+                      toast({
+                        title: 'Error',
+                        description: 'Failed to update pen. Please try again.',
+                        variant: 'destructive',
+                      });
+                    }
+                  }}
+                >
+                  Update Pen
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

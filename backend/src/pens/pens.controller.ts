@@ -27,7 +27,7 @@ export class PensController {
   @ApiResponse({ status: 200, description: 'Return all pens', type: [Pen] })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAll(@Request() req): Promise<Pen[]> {
-    return this.pensService.findAll(req.user.id, req.user.role);
+    return this.pensService.findAll(req.user.id, req.user.role, req.user.isWorker, req.user.isVet, req.user.registeredBy);
   }
 
   @Get('stats')
@@ -35,7 +35,7 @@ export class PensController {
   @ApiResponse({ status: 200, description: 'Return pen statistics' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getPenStats(@Request() req): Promise<any> {
-    return this.pensService.getPenStats(req.user.id, req.user.role);
+    return this.pensService.getPenStats(req.user.id, req.user.role, req.user.isWorker, req.user.isVet, req.user.registeredBy);
   }
 
   @Get(':id')
@@ -45,7 +45,7 @@ export class PensController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Pen not found' })
   async findOne(@Param('id') id: string, @Request() req): Promise<Pen> {
-    return this.pensService.findOne(id, req.user.id, req.user.role);
+    return this.pensService.findOne(id, req.user.id, req.user.role, req.user.isWorker, req.user.isVet, req.user.registeredBy);
   }
 
   @Patch(':id')
@@ -59,7 +59,7 @@ export class PensController {
     @Body() updatePenDto: UpdatePenDto,
     @Request() req,
   ): Promise<Pen> {
-    return this.pensService.update(id, updatePenDto, req.user.id, req.user.role);
+    return this.pensService.update(id, updatePenDto, req.user.id, req.user.role, req.user.isWorker, req.user.isVet, req.user.registeredBy);
   }
 
   @Delete(':id')
@@ -69,6 +69,6 @@ export class PensController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Pen not found' })
   async remove(@Param('id') id: string, @Request() req): Promise<void> {
-    return this.pensService.remove(id, req.user.id, req.user.role);
+    return this.pensService.remove(id, req.user.id, req.user.role, req.user.isWorker, req.user.isVet, req.user.registeredBy);
   }
 }

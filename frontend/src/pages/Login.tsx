@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { Logo } from "@/components/ui/logo";
 import { authService } from "@/api";
+import { useLanguage } from "@/contexts/LanguageContext";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const loginSchema = z.object({
   emailOrUsername: z.string().min(1, "Email or username is required"),
@@ -30,6 +32,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -57,8 +60,8 @@ const Login = () => {
 
       // Show success message
       toast({
-        title: "Login successful!",
-        description: `Welcome back to DG Poultry, ${response.user.fullName}.`,
+        title: t('auth.loginSuccessful'),
+        description: `${t('auth.welcomeBack')}, ${response.user.fullName}.`,
       });
 
       // Redirect to dashboard based on role
@@ -69,8 +72,8 @@ const Login = () => {
 
       // Show error message
       toast({
-        title: "Login failed",
-        description: error.response?.data?.message || "Invalid credentials. Please try again.",
+        title: t('auth.loginFailed'),
+        description: error.response?.data?.message || t('auth.invalidCredentials'),
         variant: "destructive",
       });
     } finally {
@@ -82,15 +85,16 @@ const Login = () => {
     <div className="min-h-screen bg-green-50 flex flex-col">
       {/* Header */}
       <div className="bg-white shadow-sm py-3 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Logo />
+          <LanguageSwitcher />
         </div>
       </div>
 
       <div className="flex-1 flex items-center justify-center py-10 px-4 md:px-8">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-lg shadow-md p-6 md:p-8">
-            <h1 className="text-2xl font-bold text-green-800 mb-6 text-center">Login to Your Account</h1>
+            <h1 className="text-2xl font-bold text-green-800 mb-6 text-center">{t('auth.loginToAccount')}</h1>
 
             <div className="mb-6 flex justify-center">
               <div className="bg-green-50 p-3 rounded-full">
@@ -105,7 +109,7 @@ const Login = () => {
                   name="emailOrUsername"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email or Username</FormLabel>
+                      <FormLabel>{t('auth.emailOrUsername')}</FormLabel>
                       <FormControl>
                         <Input type="text" placeholder="john@example.com or johnsmith" {...field} />
                       </FormControl>
@@ -118,7 +122,7 @@ const Login = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>{t('auth.password')}</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input 
@@ -147,7 +151,7 @@ const Login = () => {
                 />
                 <div className="flex justify-end">
                   <Link to="/forgot-password" className="text-sm text-green-600 hover:underline">
-                    Forgot Password?
+                    {t('auth.forgotPassword')}
                   </Link>
                 </div>
                 <Button 
@@ -155,15 +159,15 @@ const Login = () => {
                   className="w-full bg-green-600 hover:bg-green-700"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Logging in..." : "Login"}
+                  {isSubmitting ? t('auth.loggingIn') : t('auth.login')}
                 </Button>
               </form>
             </Form>
 
             <div className="mt-6 text-center text-sm">
-              Don't have an account?{" "}
+              {t('auth.dontHaveAccount')}{" "}
               <Link to="/register" className="text-green-600 font-medium hover:underline">
-                Register Now
+                {t('auth.registerNow')}
               </Link>
             </div>
 
@@ -177,7 +181,7 @@ const Login = () => {
 
           <div className="mt-4 text-center text-sm text-gray-500">
             <Link to="/" className="text-green-600 hover:underline">
-              Back to Home
+              {t('auth.backToHome')}
             </Link>
           </div>
         </div>

@@ -15,6 +15,8 @@ import {
   Users,
 } from "lucide-react";
 import { authService } from "@/api";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   SidebarProvider,
   Sidebar,
@@ -75,6 +77,7 @@ const DashboardLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [userData, setUserData] = useState<any>(null);
+  const { t } = useLanguage();
 
   // Helper to check if a path is active
   const isActive = (path: string) => {
@@ -127,22 +130,22 @@ const DashboardLayout = () => {
     // Redirect users based on their role if they're trying to access unauthorized areas
     if (!isWorker && !isVet && (location.pathname.startsWith('/worker') || location.pathname.startsWith('/vet'))) {
       toast({
-        title: "Access Restricted",
-        description: "Farmers can only view the farmer dashboard.",
+        title: t('general.accessRestricted'),
+        description: t('general.farmerRestriction'),
         variant: "destructive",
       });
       navigate('/dashboard');
     } else if (isWorker && (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/vet'))) {
       toast({
-        title: "Access Restricted",
-        description: "Workers can only view the worker dashboard.",
+        title: t('general.accessRestricted'),
+        description: t('general.workerRestriction'),
         variant: "destructive",
       });
       navigate('/worker');
     } else if (isVet && (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/worker'))) {
       toast({
-        title: "Access Restricted",
-        description: "Veterinarians can only view the vet dashboard.",
+        title: t('general.accessRestricted'),
+        description: t('general.vetRestriction'),
         variant: "destructive",
       });
       navigate('/vet');
@@ -182,8 +185,8 @@ const DashboardLayout = () => {
     authService.logout();
 
     toast({
-      title: "Logged out successfully",
-      description: "You have been logged out of your account.",
+      title: t('general.loggedOut'),
+      description: t('general.logoutMessage'),
     });
 
     navigate("/login");
@@ -199,22 +202,22 @@ const DashboardLayout = () => {
 
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel>Main</SidebarGroupLabel>
+              <SidebarGroupLabel>{t('nav.main')}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {userRole === "farmer" && (
                     <>
                       <NavLink to="/dashboard" icon={<Home className="h-5 w-5" />}>
-                        Dashboard
+                        {t('nav.dashboard')}
                       </NavLink>
                       <NavLink to="/dashboard/pens" icon={<Egg className="h-5 w-5" />}>
-                        Pens & Chicks
+                        {t('nav.pens')}
                       </NavLink>
                       <NavLink to="/dashboard/records" icon={<FileText className="h-5 w-5" />}>
-                        Feed & Medicine
+                        {t('nav.records')}
                       </NavLink>
                       <NavLink to="/dashboard/reports" icon={<LineChart className="h-5 w-5" />}>
-                        Reports
+                        {t('nav.reports')}
                       </NavLink>
                     </>
                   )}
@@ -222,13 +225,13 @@ const DashboardLayout = () => {
                   {userRole === "worker" && (
                     <>
                       <NavLink to="/worker" icon={<Home className="h-5 w-5" />}>
-                        Worker Dashboard
+                        {t('nav.dashboard')}
                       </NavLink>
                       <NavLink to="/dashboard/pens" icon={<Egg className="h-5 w-5" />}>
-                        View Pens
+                        {t('nav.pens')}
                       </NavLink>
                       <NavLink to="/worker/vets" icon={<Stethoscope className="h-5 w-5" />}>
-                        Veterinarians
+                        {t('nav.team')}
                       </NavLink>
                     </>
                   )}
@@ -236,10 +239,10 @@ const DashboardLayout = () => {
                   {userRole === "vet" && (
                     <>
                       <NavLink to="/vet" icon={<Home className="h-5 w-5" />}>
-                        Vet Dashboard
+                        {t('nav.dashboard')}
                       </NavLink>
                       <NavLink to="/dashboard/pens" icon={<Egg className="h-5 w-5" />}>
-                        View Pens
+                        {t('nav.pens')}
                       </NavLink>
                     </>
                   )}
@@ -248,13 +251,13 @@ const DashboardLayout = () => {
             </SidebarGroup>
 
             <SidebarGroup>
-              <SidebarGroupLabel>User</SidebarGroupLabel>
+              <SidebarGroupLabel>{t('nav.user')}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  
+
                   {userRole === "farmer" && (
                     <NavLink to="/team" icon={<Users className="h-5 w-5" />}>
-                      Team Members
+                      {t('nav.team')}
                     </NavLink>
                   )}
                 </SidebarMenu>
@@ -269,13 +272,22 @@ const DashboardLayout = () => {
             <div className="flex items-center gap-2">
               <SidebarTrigger />
               <div className="ml-2">
-                <div className="text-sm font-medium">{userRole === "vet" ? "Veterinarian" : userRole === "worker" ? "Poultry Worker" : "Farm Owner"}</div>
+                <div className="text-sm font-medium">
+                  {userRole === "vet" 
+                    ? t('general.veterinarian') 
+                    : userRole === "worker" 
+                      ? t('general.poultryWorker') 
+                      : t('general.farmOwner')
+                  }
+                </div>
                 <div className="text-xs text-gray-500">
                   {new Date().toLocaleDateString()}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <LanguageSwitcher />
+
               <Button variant="ghost" size="icon" className="text-gray-600">
                 <Bell className="h-5 w-5" />
               </Button>
@@ -293,16 +305,16 @@ const DashboardLayout = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 mr-2 bg-white shadow-md rounded-md border border-gray-200 p-1">
                   <DropdownMenuLabel className="px-2 py-1.5 text-gray-500 font-normal text-sm">
-                    My Account
+                    {t('auth.myAccount')}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-gray-100 h-px my-1" />
                   <DropdownMenuItem className="flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded-sm hover:bg-gray-100 text-gray-700">
                     <User className="h-4 w-4" />
-                    <span>Profile</span>
+                    <span>{t('auth.profile')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded-sm hover:bg-gray-100 text-gray-700">
                     <Settings className="h-4 w-4" />
-                    <span>Settings</span>
+                    <span>{t('auth.settings')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-gray-100 h-px my-1" />
                   <DropdownMenuItem 
@@ -310,7 +322,7 @@ const DashboardLayout = () => {
                     className="flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded-sm hover:bg-red-50 text-red-600"
                   >
                     <LogOut className="h-4 w-4" />
-                    <span>Log Out</span>
+                    <span>{t('auth.logout')}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

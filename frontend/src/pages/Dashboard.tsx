@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,6 +28,7 @@ const defaultMonthlyData = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(null);
   const [pens, setPens] = useState<Pen[]>([]);
@@ -120,9 +122,9 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-800">{t('nav.dashboard')}</h1>
           <p className="text-gray-600">
-            Welcome back, {userData?.fullName || userData?.name || 'Farmer'}
+            {t('dashboard.welcome')}, {userData?.fullName || userData?.name || 'Farmer'}
           </p>
         </div>
         <div className="flex gap-3">
@@ -132,7 +134,7 @@ const Dashboard = () => {
             disabled={isLoading}
           >
             <Plus className="mr-2 h-4 w-4" />
-            Add Record
+            {t('dashboard.addRecord')}
           </Button>
         </div>
       </div>
@@ -159,7 +161,7 @@ const Dashboard = () => {
           <>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Total Revenue</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-500">{t('dashboard.totalRevenue')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
@@ -174,13 +176,13 @@ const Dashboard = () => {
                     </span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Current period</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.currentPeriod')}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Total Expenses</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-500">{t('dashboard.totalExpenses')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
@@ -195,13 +197,13 @@ const Dashboard = () => {
                     </span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Feed is main expense</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.feedMainExpense')}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Egg Production</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-500">{t('dashboard.eggProduction')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
@@ -216,13 +218,13 @@ const Dashboard = () => {
                     </span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Total eggs this period</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.totalEggs')}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Mortality Rate</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-500">{t('dashboard.mortalityRate')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
@@ -236,7 +238,7 @@ const Dashboard = () => {
                     </span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Lower is better</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.lowerIsBetter')}</p>
               </CardContent>
             </Card>
           </>
@@ -247,12 +249,12 @@ const Dashboard = () => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Farm Performance</CardTitle>
+            <CardTitle>{t('dashboard.farmPerformance')}</CardTitle>
             <Tabs defaultValue="daily" onValueChange={setChartPeriod}>
               <TabsList>
-                <TabsTrigger value="daily">Daily</TabsTrigger>
-                <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                <TabsTrigger value="monthly">Monthly</TabsTrigger>
+                <TabsTrigger value="daily">{t('dashboard.daily')}</TabsTrigger>
+                <TabsTrigger value="weekly">{t('dashboard.weekly')}</TabsTrigger>
+                <TabsTrigger value="monthly">{t('dashboard.monthly')}</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -272,19 +274,75 @@ const Dashboard = () => {
                     top: 5,
                     right: 30,
                     left: 20,
-                    bottom: 5,
+                    bottom: 25,
                   }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="eggs" stroke="#4ade80" activeDot={{ r: 8 }} />
-                  <Line type="monotone" dataKey="sales" stroke="#16a34a" />
-                  <Line type="monotone" dataKey="expenses" stroke="#dc2626" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis 
+                    dataKey="name" 
+                    label={{ 
+                      value: 'Time Period', 
+                      position: 'insideBottomRight', 
+                      offset: -15 
+                    }}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis 
+                    label={{ 
+                      value: 'Amount (Tsh)', 
+                      angle: -90, 
+                      position: 'insideLeft',
+                      style: { textAnchor: 'middle' }
+                    }}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Tooltip 
+                    formatter={(value, name) => {
+                      const formattedName = name === 'eggs' ? 'Eggs (count)' : 
+                                           name === 'sales' ? 'Sales (Tsh)' : 
+                                           'Expenses (Tsh)';
+                      return [`${value} ${name === 'eggs' ? '' : 'Tsh'}`, formattedName];
+                    }}
+                    labelFormatter={(label) => `Period: ${label}`}
+                  />
+                  <Legend 
+                    formatter={(value) => {
+                      return value === 'eggs' ? 'Egg Production' : 
+                             value === 'sales' ? 'Total Sales' : 
+                             'Total Expenses';
+                    }}
+                    wrapperStyle={{ paddingTop: 10 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="eggs" 
+                    name="eggs"
+                    stroke="#4ade80" 
+                    strokeWidth={2}
+                    activeDot={{ r: 8 }} 
+                    dot={{ r: 4 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="sales" 
+                    name="sales"
+                    stroke="#16a34a" 
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="expenses" 
+                    name="expenses"
+                    stroke="#dc2626" 
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
+              <div className="text-center text-sm text-gray-500 mt-2">
+                {t('dashboard.chartDescription')}
+              </div>
             </div>
           )}
         </CardContent>
@@ -294,10 +352,10 @@ const Dashboard = () => {
         {/* Pens Summary */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Pens Summary</CardTitle>
+            <CardTitle>{t('dashboard.pensSummary')}</CardTitle>
             <Link to="/dashboard/pens">
               <Button variant="outline" size="sm" className="text-xs">
-                View All Pens
+                {t('dashboard.viewAllPens')}
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             </Link>
@@ -350,7 +408,7 @@ const Dashboard = () => {
                     <div className="text-center py-4 text-gray-500">No pens found</div>
                   )}
                   <Link to="/dashboard/pens" className="flex items-center text-green-600 text-sm hover:underline">
-                    <span>View all pens</span>
+                    <span>{t('dashboard.viewAllPens')}</span>
                     <ArrowRight className="ml-1 h-4 w-4" />
                   </Link>
                 </>
@@ -362,10 +420,10 @@ const Dashboard = () => {
         {/* Recent Expenses */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Expenses</CardTitle>
+            <CardTitle>{t('dashboard.recentExpenses')}</CardTitle>
             <Link to="/dashboard/records">
               <Button variant="outline" size="sm" className="text-xs">
-                View All Records
+                {t('dashboard.viewAllRecords')}
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             </Link>
@@ -416,7 +474,7 @@ const Dashboard = () => {
                     <div className="text-center py-4 text-gray-500">No records found</div>
                   )}
                   <Link to="/dashboard/records" className="flex items-center text-green-600 text-sm hover:underline">
-                    <span>View all expenses</span>
+                    <span>{t('dashboard.viewAllExpenses')}</span>
                     <ArrowRight className="ml-1 h-4 w-4" />
                   </Link>
                 </>
@@ -433,11 +491,11 @@ const Dashboard = () => {
           <CardHeader className="flex flex-row items-center justify-between">
             <div className="flex items-center">
               <Activity className="h-5 w-5 text-green-600 mr-2" />
-              <CardTitle>Recent Treatments</CardTitle>
+              <CardTitle>{t('dashboard.recentTreatments')}</CardTitle>
             </div>
             <Link to="/vet">
               <Button variant="outline" size="sm" className="text-xs">
-                View Vet Dashboard
+                {t('dashboard.viewVetDashboard')}
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             </Link>
